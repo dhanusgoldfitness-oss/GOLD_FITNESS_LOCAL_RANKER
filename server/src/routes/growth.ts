@@ -10,11 +10,13 @@ import * as G from '../lib/google.js';
 import { ownLocation, spendCredit } from './gbp.js';
 import { fireEvent } from '../lib/automation.js';
 import { geminiJson } from '../lib/gemini.js';
+import { isUnlimited, UNLIMITED } from '../lib/unlimited.js';
 
 export const growth = Router();
 growth.use(auth);
 
 async function planLimits(uid: string) {
+  if (await isUnlimited(uid)) return { keyword_limit: UNLIMITED, scan_limit: UNLIMITED, location_limit: UNLIMITED };
   const { data } = await db().from('subscriptions').select('plans(*)').eq('user_id', uid).order('created_at', { ascending: false }).limit(1).maybeSingle();
   const p: any = (data as any)?.plans ?? { keyword_limit: 5, scan_limit: 2, location_limit: 1 };
   return p as { keyword_limit: number; scan_limit: number; location_limit: number };

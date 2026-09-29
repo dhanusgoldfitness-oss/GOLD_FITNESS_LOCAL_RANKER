@@ -6,6 +6,7 @@ import { db } from '../lib/supabase.js';
 import { config, configured } from '../config.js';
 import { geminiJson } from '../lib/gemini.js';
 import { ownLocation, spendCredit } from './gbp.js';
+import { isUnlimited } from '../lib/unlimited.js';
 
 export const media = Router();
 media.use(auth);
@@ -21,7 +22,7 @@ media.post('/ai-videos', validate(z.object({ prompt: z.string().trim().min(5).ma
   if (!configured.gemini) throw new ApiError(503, 'NOT_CONNECTED', 'Gemini API key is not configured on the server.');
   if (req.body.location_id) await ownLocation(uid, req.body.location_id);
   const { data: p } = await db().from('profiles').select('ai_credits').eq('id', uid).single();
-  if ((p?.ai_credits ?? 0) < VIDEO_COST) throw new ApiError(402 as any, 'LIMIT_REACHED', `A video costs ${VIDEO_COST} credits.`);
+  if ((p?.ai_credits ?? 0) < VIDEO_COST && !(await isUnlimited(uid))) throw new ApiError(402 as any, 'LIMIT_REACHED', `A video costs ${VIDEO_COST} credits.`);
   let r: Response;
   try {
     r = await fetch(`${GL}/models/${config.GEMINI_VIDEO_MODEL}:predictLongRunning`, {

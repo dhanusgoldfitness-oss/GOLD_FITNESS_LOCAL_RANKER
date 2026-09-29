@@ -8,6 +8,7 @@ import { runAudit, RULES_VERSION } from '../lib/audit.js';
 import { gemini, geminiJson } from '../lib/gemini.js';
 import { notify } from './core.js';
 
+import { isUnlimited } from '../lib/unlimited.js';
 export const gbp = Router();
 gbp.use(auth);
 
@@ -61,7 +62,7 @@ gbp.get('/locations', wrap(async (req, res) => {
 gbp.patch('/locations/:id', validate(z.object({ enabled: z.boolean() })), wrap(async (req, res) => {
   const uid = req.user!.id;
   const loc = await ownLocation(uid, req.params.id);
-  if (req.body.enabled && !loc.enabled) {
+  if (req.body.enabled && !loc.enabled && !(await isUnlimited(uid))) {
     const { data: sub } = await db().from('subscriptions').select('plans(location_limit)').eq('user_id', uid).order('created_at', { ascending: false }).limit(1).maybeSingle();
     const limit = (sub as any)?.plans?.location_limit ?? 1;
     const { count } = await db().from('business_locations').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('enabled', true);
@@ -135,6 +136,7 @@ gbp.get('/locations/:id/audits', wrap(async (req, res) => {
 
 // ---------- AI optimization (recommend -> owner approves -> backend applies) ----------
 async function spendCredit(uid: string, feature: string, cost = 1) {
+  if (await isUnlimited(uid)) return async (ok: boolean) => { await db().from('ai_usage').insert({ user_id: uid, feature, ok, credits: 0 }); };
   const { data: p } = await db().from('profiles').select('ai_credits').eq('id', uid).single();
   if ((p?.ai_credits ?? 0) < cost) throw new ApiError(402 as any, 'LIMIT_REACHED', 'You are out of AI credits.');
   return async (ok: boolean) => {
