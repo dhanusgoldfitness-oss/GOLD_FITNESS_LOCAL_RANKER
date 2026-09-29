@@ -1,9 +1,10 @@
 import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { config } from '../config.js';
+import { ApiError } from './errors.js';
 
 function key(): Buffer {
   if (!config.TOKEN_ENC_KEY || !/^[0-9a-f]{64}$/i.test(config.TOKEN_ENC_KEY)) {
-    throw new Error('TOKEN_ENC_KEY missing or invalid (need 64 hex chars)');
+    throw new ApiError(503, 'NOT_CONNECTED', 'TOKEN_ENC_KEY is missing or invalid on the server (needs 64 hex characters).');
   }
   return Buffer.from(config.TOKEN_ENC_KEY, 'hex');
 }
@@ -25,7 +26,7 @@ export function decrypt(payload: string): string {
 
 /** Signed, expiring OAuth state (CSRF protection). */
 function stateSecret() {
-  if (!config.OAUTH_STATE_SECRET) throw new Error('OAUTH_STATE_SECRET missing');
+  if (!config.OAUTH_STATE_SECRET) throw new ApiError(503, 'NOT_CONNECTED', 'OAUTH_STATE_SECRET is not set on the server.');
   return config.OAUTH_STATE_SECRET;
 }
 export function signState(userId: string, ttlMs = 10 * 60_000): string {
