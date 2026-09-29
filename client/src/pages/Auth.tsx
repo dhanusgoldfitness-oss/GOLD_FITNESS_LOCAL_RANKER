@@ -24,7 +24,7 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
           <div className="mb-6 text-center"><h1 className="text-2xl font-bold">{title}</h1><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div>
           {!supabaseConfigured && <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">Status: <b>NOT_CONNECTED</b> — set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable sign-in.</div>}
           {children}
-          <p className="mt-6 text-center text-xs text-slate-500">© {new Date().getFullYear()} DigiMithra. All rights reserved.</p>
+          <p className="mt-6 text-center text-xs text-slate-500">© {new Date().getFullYear()} DigiMithra. All rights reserved. <Link to="/privacy" className="underline">Privacy</Link> · <Link to="/terms" className="underline">Terms</Link></p>
         </div>
       </div>
     </div>

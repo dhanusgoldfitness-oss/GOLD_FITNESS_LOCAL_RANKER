@@ -28,6 +28,7 @@ import Admin from './pages/Admin';
 import AiMode from './pages/AiMode';
 import AiVideo from './pages/AiVideo';
 import Social from './pages/Social';
+import { DataDeletion, Privacy, Terms } from './pages/Legal';
 import { Categories, Customers, Expenses, Services } from './pages/Crud';
 import { BillingSettings, Invoices, TallyExport } from './pages/Billing';
 
@@ -44,6 +45,9 @@ createRoot(document.getElementById('root')!).render(
       <ToastProvider>
         <AuthProvider>
           <Routes>
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/data-deletion" element={<DataDeletion />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<Forgot />} />
