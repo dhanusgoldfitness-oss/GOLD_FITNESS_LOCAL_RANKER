@@ -12,7 +12,7 @@ const schema = z.object({
   TOKEN_ENC_KEY: z.string().optional(),
   OAUTH_STATE_SECRET: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
-  GEMINI_MODEL: z.string().default('gemini-3.5-flash'),
+  GEMINI_MODEL: z.string().default('gemini-3.8-flash'),
   GEMINI_IMAGE_MODEL: z.string().default('gemini-3.1-flash-image'),
   GEMINI_VIDEO_MODEL: z.string().default('veo-3.0-fast-generate-001'),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
