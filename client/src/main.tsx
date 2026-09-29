@@ -26,7 +26,8 @@ import Automations from './pages/Automations';
 import WhatsApp from './pages/WhatsApp';
 import Admin from './pages/Admin';
 import AiMode from './pages/AiMode';
-import ModuleStatus from './pages/ModuleStatus';
+import AiVideo from './pages/AiVideo';
+import Social from './pages/Social';
 import { Categories, Customers, Expenses, Services } from './pages/Crud';
 import { BillingSettings, Invoices, TallyExport } from './pages/Billing';
 
@@ -35,12 +36,6 @@ function Protected() {
   if (loading) return <PageLoading />;
   return session ? <Layout /> : <Navigate to="/login" replace />;
 }
-
-// Modules whose providers are not built/connected yet: they show their real status from the API.
-const pending: [string, string, string, string][] = [
-  ['ai-video', 'ai_video', 'AI Video', 'Generate short promo videos.'],
-  ['social', 'ai_video', 'Social Post', 'Connect social accounts and publish.'],
-];
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -68,6 +63,8 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/performance" element={<Performance />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/ai-mode" element={<AiMode />} />
+              <Route path="/ai-video" element={<AiVideo />} />
+              <Route path="/social" element={<Social />} />
               <Route path="/ai-images" element={<AiImages />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/automations" element={<Automations />} />
@@ -81,7 +78,6 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/billing-settings" element={<BillingSettings />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/admin" element={<Admin />} />
-              {pending.map(([path, key, title, desc]) => <Route key={path} path={`/${path}`} element={<ModuleStatus moduleKey={key} title={title} description={desc} />} />)}
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

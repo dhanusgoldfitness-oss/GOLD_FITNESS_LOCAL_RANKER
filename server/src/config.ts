@@ -14,6 +14,7 @@ const schema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default('gemini-2.0-flash'),
   GEMINI_IMAGE_MODEL: z.string().default('gemini-2.0-flash-preview-image-generation'),
+  GEMINI_VIDEO_MODEL: z.string().default('veo-3.0-fast-generate-001'),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_ID: z.string().optional(),

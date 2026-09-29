@@ -11,6 +11,7 @@ import { business } from './routes/business.js';
 import { growth } from './routes/growth.js';
 import { admin, crm, hooks } from './routes/crm.js';
 import { assistant } from './routes/assistant.js';
+import { media } from './routes/media.js';
 import { startScheduler } from './lib/scheduler.js';
 import { configured } from './config.js';
 
@@ -32,6 +33,7 @@ app.use('/api', business);
 app.use('/api', growth);
 app.use('/api', crm);
 app.use('/api', assistant);
+app.use('/api', media);
 app.use('/api', admin);
 app.use('/api', (_req, res) => res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Unknown endpoint.' } }));
 app.use(errorHandler);

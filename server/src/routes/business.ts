@@ -193,7 +193,7 @@ business.get('/modules/status', wrap(async (_req, res) => {
   const st = (ok: boolean, need: string) => ({ status: ok ? 'CONNECTED' : 'NOT_CONNECTED', phase: '', note: ok ? 'Ready.' : need });
   res.json({
     ai_mode: st(configured.gemini, 'Set GEMINI_API_KEY on the server.'),
-    ai_video: { status: 'API_PENDING', phase: 'Later', note: 'No video generation provider is connected.' },
+    ai_video: st(configured.gemini, 'Set GEMINI_API_KEY (plan with Veo access) on the server.'),
     maps: st(configured.maps, 'Set GOOGLE_MAPS_API_KEY (Places API New) on the server to enable rank checks and competitors.'),
     whatsapp: st(configured.whatsapp, 'Set WHATSAPP_TOKEN and WHATSAPP_PHONE_ID on the server.'),
     gemini: st(configured.gemini, 'Set GEMINI_API_KEY on the server.'),
