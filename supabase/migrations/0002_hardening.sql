@@ -1,0 +1,21 @@
+-- Applied to project tlquwsvrodjzbmeaifkx together with 0001 (advisor-driven hardening + FK indexes).
+alter function public.set_updated_at() set search_path = public;
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+revoke execute on function public.set_updated_at() from public, anon, authenticated;
+revoke execute on function public.is_super_admin() from public, anon;
+grant execute on function public.is_super_admin() to authenticated;
+create index if not exists gbp_audits_user_idx on public.gbp_audits (user_id);
+create index if not exists ai_suggestions_loc_idx on public.ai_suggestions (location_id);
+create index if not exists ai_suggestions_user_idx on public.ai_suggestions (user_id);
+create index if not exists ai_usage_user_idx on public.ai_usage (user_id);
+create index if not exists reviews_user_idx on public.reviews (user_id);
+create index if not exists review_reply_log_review_idx on public.review_reply_log (review_id);
+create index if not exists review_reply_log_user_idx on public.review_reply_log (user_id);
+create index if not exists content_posts_user_idx on public.content_posts (user_id);
+create index if not exists content_posts_loc_idx on public.content_posts (location_id);
+create index if not exists audit_logs_user_idx on public.audit_logs (user_id);
+create index if not exists subscriptions_user_idx on public.subscriptions (user_id);
+create index if not exists customers_user_idx on public.customers (user_id);
+create index if not exists services_user_idx on public.services (user_id);
+create index if not exists invoices_customer_idx on public.invoices (customer_id);
+create index if not exists expenses_user_idx on public.expenses (user_id);
