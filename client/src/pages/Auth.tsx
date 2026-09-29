@@ -9,9 +9,9 @@ import { Spinner } from '../components/ui';
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-gold-600 via-gold-500 to-amber-300 p-12 text-ink-950 lg:flex">
-        <Logo className="mb-10 scale-125" />
-        <h2 className="text-center text-4xl font-extrabold">Boost Your Gym's<br />Local Ranking</h2>
+      <div className="relative hidden flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-gold-600 via-gold-500 to-gold-300 p-12 text-ink-950 lg:flex">
+        <Logo className="mx-auto mb-8 h-32 w-32 shadow-xl" />
+        <h2 className="text-center text-4xl font-extrabold">Boost Your<br />Local Ranking</h2>
         <p className="mt-3 max-w-sm text-center text-sm font-medium opacity-80">Manage your Google Business Profile with AI-powered tools and insights.</p>
         <div className="mt-8 w-full max-w-sm space-y-3">
           {[[Star, 'AI-powered review replies'], [BarChart3, 'Real-time profile audit'], [CalendarClock, 'Post scheduling'], [Sparkles, 'One-click optimization']].map(([I, t]: any) => (

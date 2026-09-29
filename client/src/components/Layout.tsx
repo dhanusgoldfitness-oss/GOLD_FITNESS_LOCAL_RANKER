@@ -47,12 +47,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
 ];
 
 export function Logo({ className = '' }: { className?: string }) {
-  return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <img src="/favicon.png" alt="" className="h-8 w-8 rounded-lg" />
-      <div className="leading-tight"><div className="text-base font-extrabold tracking-wide">Digi<span className="text-gold-500 italic">Mithra</span></div><div className="text-[10px] text-slate-500">We Build Your Brand</div></div>
-    </div>
-  );
+  return <img src="/logo.png" alt="DigiMithra — We Build Your Brand" className={`h-20 w-20 rounded-xl ${className}`} />;
 }
 
 function useTheme() {
