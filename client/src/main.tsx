@@ -25,6 +25,7 @@ import Leads from './pages/Leads';
 import Automations from './pages/Automations';
 import WhatsApp from './pages/WhatsApp';
 import Admin from './pages/Admin';
+import AiMode from './pages/AiMode';
 import ModuleStatus from './pages/ModuleStatus';
 import { Categories, Customers, Expenses, Services } from './pages/Crud';
 import { BillingSettings, Invoices, TallyExport } from './pages/Billing';
@@ -37,7 +38,6 @@ function Protected() {
 
 // Modules whose providers are not built/connected yet: they show their real status from the API.
 const pending: [string, string, string, string][] = [
-  ['ai-mode', 'ai_mode', 'AI Mode', 'Conversational assistant for your local SEO.'],
   ['ai-video', 'ai_video', 'AI Video', 'Generate short promo videos.'],
   ['social', 'ai_video', 'Social Post', 'Connect social accounts and publish.'],
 ];
@@ -67,6 +67,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/competitors" element={<Competitors />} />
               <Route path="/performance" element={<Performance />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/ai-mode" element={<AiMode />} />
               <Route path="/ai-images" element={<AiImages />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/automations" element={<Automations />} />

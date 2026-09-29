@@ -3,7 +3,7 @@
 Local SEO + Google Business Profile SaaS. React + Vite + TS + Tailwind (client) · Node/Express (server) · Supabase · Gemini · Google Business Profile APIs.
 
 ## Status
-Phases 0–25 of the build guide are implemented in code. Phase 26 (full QA — only unit tests exist so far) and phase 27 (production deployment) are still to do. Items marked (needs keys) work as soon as the credential is provided; until then the UI shows a real `NOT_CONNECTED` / `API_PENDING` status, never sample data.
+Phases 0–25 of the build guide are implemented in code, plus AI Mode (Gemini assistant grounded in your saved data). Phase 26 (full QA — only unit tests exist so far) and phase 27 (production deployment) are still to do. Items marked (needs keys) work as soon as the credential is provided; until then the UI shows a real `NOT_CONNECTED` / `API_PENDING` status, never sample data.
 
 | Area | Notes |
 |---|---|
@@ -15,7 +15,7 @@ Phases 0–25 of the build guide are implemented in code. Phase 26 (full QA — 
 | Plans, limits (locations/keywords/scans/credits), super-admin panel with audit log | Built; payment gateway intentionally not connected |
 | Background jobs (scheduled posts every minute, daily review + metrics sync, weekly ranks/competitors) with DB job locks | Built (in-process scheduler; set `SCHEDULER_ENABLED=false` on extra instances) |
 | Billing modules (customers, services, invoices, expenses, Tally XML) | Built |
-| AI video, social posting, AI Mode | Not built — show `API_PENDING` |
+| AI video, social posting | Not built — show `API_PENDING` (no provider connected) |
 
 ## Setup
 1. Run `supabase/migrations/0001` → `0004` in order in the Supabase SQL editor (already applied to project `tlquwsvrodjzbmeaifkx`).
