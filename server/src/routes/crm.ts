@@ -154,6 +154,26 @@ crm.post('/automations', validate(ruleIn), wrap(async (req, res) => {
   if (error) throw new ApiError(400, 'VALIDATION', 'Could not save rule.');
   res.status(201).json({ rule: data });
 }));
+const STARTER_RULES = [
+  { name: 'Alert me on 1–2★ reviews', trigger: 'negative_review', condition: { maxRating: 2 }, action: 'notify', action_config: { title: '{rating}★ review from {reviewer}', body: '{comment}' }, enabled: true },
+  { name: 'Draft an apology reply for 1–2★ reviews', trigger: 'negative_review', condition: { maxRating: 2 }, action: 'draft_review_reply', action_config: {}, enabled: true },
+  { name: 'Notify me when a keyword drops 3+ places', trigger: 'rank_drop', condition: { minDrop: 3 }, action: 'notify', action_config: { title: 'Rank drop: {keyword}', body: 'Dropped {drop} places (now #{rank}).' }, enabled: true },
+  { name: 'Notify me about every new lead', trigger: 'new_lead', condition: {}, action: 'notify', action_config: { title: 'New lead: {name}', body: '{phone}' }, enabled: true },
+  { name: 'Alert me when a scheduled post fails', trigger: 'failed_post', condition: {}, action: 'notify', action_config: { title: 'Post failed: {title}', body: 'Open Google Posts to retry.' }, enabled: true },
+  // these need WhatsApp Cloud API credentials, so they start switched off
+  { name: 'WhatsApp me on 1–2★ reviews', trigger: 'negative_review', condition: { maxRating: 2 }, action: 'whatsapp_owner', action_config: { message: '{rating}★ review from {reviewer}: {comment}' }, enabled: false },
+  { name: 'WhatsApp a thank-you to new leads', trigger: 'new_lead', condition: {}, action: 'whatsapp_lead', action_config: { message: 'Hi {name}, thanks for your enquiry at DigiMithra! We will call you shortly.' }, enabled: false },
+];
+/** Adds the starter rules the user does not already have (matched by name), so clicking twice is safe. */
+crm.post('/automations/starter', wrap(async (req, res) => {
+  const uid = req.user!.id;
+  const { data: have } = await db().from('automation_rules').select('name').eq('user_id', uid);
+  const names = new Set((have ?? []).map((r) => r.name));
+  const rows = STARTER_RULES.filter((r) => !names.has(r.name)).map((r) => ({ ...r, user_id: uid }));
+  if (rows.length) { const { error } = await db().from('automation_rules').insert(rows); if (error) throw new ApiError(400, 'VALIDATION', 'Could not add starter rules.'); }
+  res.status(201).json({ added: rows.length });
+}));
+
 crm.patch('/automations/:id', validate(z.object({ enabled: z.boolean() })), wrap(async (req, res) => {
   await db().from('automation_rules').update({ enabled: req.body.enabled }).eq('id', req.params.id).eq('user_id', req.user!.id);   // takes effect on the very next event
   res.json({ ok: true });

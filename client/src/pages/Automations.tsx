@@ -19,6 +19,7 @@ export default function Automations() {
     const action_config: any = f.message ? { message: f.message, body: f.message } : {};
     if (await run('save', () => api('/automations', { method: 'POST', body: { name: f.name, trigger: f.trigger, action: f.action, condition, action_config } }), 'Rule created')) { setOpen(false); d.reload(); }
   };
+  const addStarter = async () => { const r = await run('starter', () => api<{ added: number }>('/automations/starter', { method: 'POST', body: {} })); if (r) d.reload(); };
   const toggle = async (r: Rule, enabled: boolean) => { await run('t' + r.id, () => api(`/automations/${r.id}`, { method: 'PATCH', body: { enabled } })); d.reload(); };
   const del = async (r: Rule) => { if (!confirm(`Delete "${r.name}"?`)) return; await run('x' + r.id, () => api(`/automations/${r.id}`, { method: 'DELETE' })); d.reload(); };
   if (d.loading) return <PageLoading />;
@@ -26,7 +27,7 @@ export default function Automations() {
   return (
     <>
       <PageHeader title="Automations" subtitle="When something happens, do something — safely. The same event never runs a rule twice." actions={<button className="btn-primary" onClick={() => setOpen(true)}><Plus size={16} />New rule</button>} />
-      {!d.data!.rules.length ? <EmptyState title="No automations yet" text="Example: when a review is 1–2★, notify me and draft an apology reply." /> : (
+      {!d.data!.rules.length ? <EmptyState title="No automations yet" text="Example: when a review is 1–2★, notify me and draft an apology reply." action={<button className="btn-primary" disabled={busy === 'starter'} onClick={addStarter}>{busy === 'starter' ? 'Adding…' : 'Add starter automations'}</button>} /> : (
         <div className="mb-6 space-y-3">{d.data!.rules.map((r) => (
           <div key={r.id} className="card flex flex-wrap items-center justify-between gap-3"><div><div className="font-bold">{r.name}</div><div className="text-sm text-slate-500">When <b>{TRIG[r.trigger]}</b> → {ACT[r.action]}</div></div>
             <div className="flex items-center gap-3"><Toggle label={`Enable ${r.name}`} checked={r.enabled} onChange={(v) => toggle(r, v)} disabled={busy === 't' + r.id} /><button className="text-red-400" aria-label="Delete rule" onClick={() => del(r)}><Trash2 size={16} /></button></div></div>))}</div>
