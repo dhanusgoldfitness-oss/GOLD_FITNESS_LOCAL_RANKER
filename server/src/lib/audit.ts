@@ -1,5 +1,5 @@
 /**
- * DGF's own transparent Business Profile completeness score (0-100).
+ * DigiMithra's own transparent Business Profile completeness score (0-100).
  * This is NOT a Google-provided score. Pure + deterministic: same input => same output.
  */
 export const RULES_VERSION = 'dgf-audit-1.0';

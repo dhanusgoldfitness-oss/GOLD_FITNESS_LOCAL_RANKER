@@ -8,7 +8,7 @@ const MSG: Record<string, [string, string]> = {
   connected: ['ok', 'Google account connected. Now sync your locations.'],
   denied: ['err', 'Google permission was declined.'],
   invalid_state: ['err', 'The sign-in link expired or was invalid. Please try again.'],
-  no_refresh_token: ['err', 'Google did not return offline access. Remove DGF from your Google account permissions and reconnect.'],
+  no_refresh_token: ['err', 'Google did not return offline access. Remove DigiMithra from your Google account permissions and reconnect.'],
   error: ['err', 'Google connection failed. Please try again.'],
 };
 
@@ -38,7 +38,7 @@ export default function GoogleBusiness() {
   const list = locs.data?.locations ?? [];
   return (
     <>
-      <PageHeader title="Google Business" subtitle="Connect your Google account and choose which locations DGF manages." actions={
+      <PageHeader title="Google Business" subtitle="Connect your Google account and choose which locations DigiMithra manages." actions={
         connected ? <><button className="btn-ghost" onClick={sync} disabled={busy === 'sync'}><RefreshCw size={16} className={busy === 'sync' ? 'animate-spin' : ''} />Sync locations</button><button className="btn-danger" onClick={disconnect}><Unplug size={16} />Disconnect</button></> : undefined} />
       {st.error && <ErrorBox error={st.error} onRetry={st.reload} />}
 
@@ -61,7 +61,7 @@ export default function GoogleBusiness() {
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-3">
             <StatCard label="Discovered" value={list.length} />
-            <StatCard label="Managed by DGF" value={list.filter((l) => l.enabled).length} />
+            <StatCard label="Managed by DigiMithra" value={list.filter((l) => l.enabled).length} />
             <StatCard label="Verified" value={list.filter((l) => l.verified).length} icon={<CheckCircle2 size={20} />} />
           </div>
           {locs.loading ? <PageLoading /> : !list.length ? <EmptyState title="No locations yet" text="Click “Sync locations” to import the locations your Google account manages." action={<button className="btn-primary" onClick={sync}>Sync locations</button>} /> : (

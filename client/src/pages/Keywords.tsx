@@ -45,7 +45,7 @@ export default function Keywords() {
       )}
       <Modal open={!!chart} onClose={() => setChart(null)} title={chart ? `Rank history — ${chart.keyword}` : ''} wide>
         {chart && (chart.history.filter((h) => h.rank).length < 2 ? <p className="text-sm text-slate-500">Need at least two successful checks to draw a trend.</p> :
-          <div className="h-64"><ResponsiveContainer><LineChart data={chart.history.filter((h) => h.rank).map((h) => ({ d: new Date(h.checked_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), rank: h.rank }))}><XAxis dataKey="d" fontSize={12} /><YAxis reversed domain={[1, 20]} fontSize={12} /><Tooltip /><Line type="monotone" dataKey="rank" stroke="#d4a017" strokeWidth={2} /></LineChart></ResponsiveContainer></div>)}
+          <div className="h-64"><ResponsiveContainer><LineChart data={chart.history.filter((h) => h.rank).map((h) => ({ d: new Date(h.checked_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), rank: h.rank }))}><XAxis dataKey="d" fontSize={12} /><YAxis reversed domain={[1, 20]} fontSize={12} /><Tooltip /><Line type="monotone" dataKey="rank" stroke="#84bd00" strokeWidth={2} /></LineChart></ResponsiveContainer></div>)}
       </Modal>
     </>
   );

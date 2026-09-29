@@ -23,7 +23,7 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
       body: opts.body ? JSON.stringify(opts.body) : undefined,
     });
   } catch {
-    throw new ApiError(0, 'OFFLINE', 'Cannot reach the DGF server. Check your connection or try again shortly.');
+    throw new ApiError(0, 'OFFLINE', 'Cannot reach the DigiMithra server. Check your connection or try again shortly.');
   }
   if (opts.raw) {
     if (!res.ok) throw new ApiError(res.status, 'ERROR', 'Download failed.');

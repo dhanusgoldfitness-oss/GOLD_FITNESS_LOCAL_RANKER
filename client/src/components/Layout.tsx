@@ -49,8 +49,8 @@ const NAV: { group: string; items: NavItem[] }[] = [
 export function Logo({ className = '' }: { className?: string }) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <img src="/favicon.svg" alt="" className="h-8 w-8" />
-      <div className="leading-tight"><div className="text-sm font-extrabold tracking-wide">DGF <span className="text-gold-500">Local Ranker</span></div><div className="text-[10px] text-slate-500">Dhanus Gold Fitness</div></div>
+      <img src="/favicon.png" alt="" className="h-8 w-8 rounded-lg" />
+      <div className="leading-tight"><div className="text-base font-extrabold tracking-wide">Digi<span className="text-gold-500 italic">Mithra</span></div><div className="text-[10px] text-slate-500">We Build Your Brand</div></div>
     </div>
   );
 }
@@ -136,7 +136,7 @@ export default function Layout() {
           </div>
           <button aria-label="Toggle theme" className="rounded-lg p-2 hover:bg-slate-500/15" onClick={toggle}>{dark ? <Sun size={18} /> : <Moon size={18} />}</button>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6"><Outlet /><footer className="mt-10 pb-4 text-center text-xs text-slate-500">© {new Date().getFullYear()} Dhanus Gold Fitness. All rights reserved. DGF Local Ranker.</footer></main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6"><Outlet /><footer className="mt-10 pb-4 text-center text-xs text-slate-500">© {new Date().getFullYear()} DigiMithra. All rights reserved. DigiMithra.</footer></main>
       </div>
     </div>
   );

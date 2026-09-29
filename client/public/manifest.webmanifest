@@ -1,12 +1,12 @@
 {
-  "name": "DGF Local Ranker",
-  "short_name": "DGF Ranker",
-  "description": "Local SEO and Google Business Profile management for Dhanus Gold Fitness.",
+  "name": "DigiMithra",
+  "short_name": "DigiMithra",
+  "description": "Local SEO and Google Business Profile management for DigiMithra.",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0d1220",
-  "theme_color": "#d4a017",
+  "background_color": "#000000",
+  "theme_color": "#84bd00",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },

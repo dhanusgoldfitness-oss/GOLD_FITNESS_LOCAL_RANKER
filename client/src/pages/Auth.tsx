@@ -24,7 +24,7 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
           <div className="mb-6 text-center"><h1 className="text-2xl font-bold">{title}</h1><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div>
           {!supabaseConfigured && <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">Status: <b>NOT_CONNECTED</b> — set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable sign-in.</div>}
           {children}
-          <p className="mt-6 text-center text-xs text-slate-500">© {new Date().getFullYear()} Dhanus Gold Fitness. All rights reserved.</p>
+          <p className="mt-6 text-center text-xs text-slate-500">© {new Date().getFullYear()} DigiMithra. All rights reserved.</p>
         </div>
       </div>
     </div>
@@ -76,7 +76,7 @@ export function Login() {
         <Field label="Password" type="password" value={pw} set={setPw} icon={<Lock size={16} />} autoComplete="current-password" />
         <div className="mb-4 text-right text-xs"><Link to="/forgot-password" className="text-gold-500 hover:underline">Forgot password?</Link></div>
         <button className="btn-primary w-full" disabled={f.busy}>{f.busy ? <Spinner /> : <>Sign in <ArrowRight size={16} /></>}</button>
-        <p className="mt-4 text-center text-sm">New to DGF Local Ranker? <Link to="/register" className="font-semibold text-gold-500">Sign up</Link></p>
+        <p className="mt-4 text-center text-sm">New to DigiMithra? <Link to="/register" className="font-semibold text-gold-500">Sign up</Link></p>
       </form>
     </Shell>
   );

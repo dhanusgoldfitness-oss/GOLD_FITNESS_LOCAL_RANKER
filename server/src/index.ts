@@ -39,6 +39,6 @@ app.use('/api', (_req, res) => res.status(404).json({ error: { code: 'NOT_FOUND'
 app.use(errorHandler);
 
 app.listen(config.PORT, () => {
-  console.log(`DGF Local Ranker API listening on :${config.PORT}`);
+  console.log(`DigiMithra API listening on :${config.PORT}`);
   if (config.SCHEDULER_ENABLED === 'true' && configured.supabase) startScheduler();
 });

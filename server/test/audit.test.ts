@@ -5,7 +5,7 @@ import { encrypt, decrypt, signState, verifyState } from '../src/lib/crypto.js';
 
 
 const full = {
-  title: 'DGF', phone: '1', website: 'x', address: 'a', primaryCategory: 'Gym', additionalCategories: 2,
+  title: 'DigiMithra', phone: '1', website: 'x', address: 'a', primaryCategory: 'Gym', additionalCategories: 2,
   description: 'x'.repeat(300), hasHours: true, serviceCount: 6, photoCount: 30, reviewCount: 40, unansweredReviews: 0, avgRating: 4.8, postsLast30d: 5,
 };
 

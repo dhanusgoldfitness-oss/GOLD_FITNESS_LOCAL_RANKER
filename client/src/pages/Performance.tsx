@@ -25,7 +25,7 @@ export default function Performance() {
           <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{d.data!.cards.map((c) => (
             <StatCard key={c.key} label={LABEL[c.key]} value={c.value ?? 'N/A'} hint={c.changePct == null ? 'No comparison data' : `${c.changePct > 0 ? '+' : ''}${c.changePct}% vs previous ${days}d`} icon={c.changePct == null ? undefined : c.changePct >= 0 ? <ArrowUp size={20} /> : <ArrowDown size={20} />} />))}</div>
           <div className="card"><div className="mb-3 flex justify-between"><h2 className="font-bold">Profile views per day</h2><span className="text-xs text-slate-500">Last synced {fmtDate(d.data!.lastSynced)}</span></div>
-            <div className="h-64"><ResponsiveContainer><AreaChart data={d.data!.series}><CartesianGrid strokeDasharray="3 3" opacity={0.15} /><XAxis dataKey="day" fontSize={11} tickFormatter={(x) => x.slice(5)} /><YAxis fontSize={12} /><Tooltip /><Area type="monotone" dataKey="impressions" stroke="#d4a017" fill="#d4a01733" /></AreaChart></ResponsiveContainer></div></div>
+            <div className="h-64"><ResponsiveContainer><AreaChart data={d.data!.series}><CartesianGrid strokeDasharray="3 3" opacity={0.15} /><XAxis dataKey="day" fontSize={11} tickFormatter={(x) => x.slice(5)} /><YAxis fontSize={12} /><Tooltip /><Area type="monotone" dataKey="impressions" stroke="#84bd00" fill="#84bd0033" /></AreaChart></ResponsiveContainer></div></div>
         </>
       )}
     </>

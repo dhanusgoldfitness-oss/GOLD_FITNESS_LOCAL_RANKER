@@ -1,7 +1,7 @@
 // Minimal service worker: caches the app shell and static assets only.
 // It NEVER touches API calls, Supabase or any cross-origin request, so data is always live.
-const CACHE = 'dgf-shell-v1';
-self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/favicon.svg', '/manifest.webmanifest']))); self.skipWaiting(); });
+const CACHE = 'digimithra-shell-v2';
+self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/favicon.png', '/manifest.webmanifest']))); self.skipWaiting(); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', (e) => {
   const req = e.request, url = new URL(req.url);

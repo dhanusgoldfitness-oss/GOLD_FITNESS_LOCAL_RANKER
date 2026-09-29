@@ -41,7 +41,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">Profile audit</h2><Link className="text-sm text-gold-500" to="/audit">Full audit →</Link></div>
           {score == null ? <p className="text-sm text-slate-500">{firstId ? 'No audit yet. Run one from the Google Audit page.' : 'Select a location to run your first audit.'}</p>
-            : <div className="flex items-center gap-6"><ScoreRing score={score} /><p className="text-sm text-slate-500">Latest DGF completeness score for {enabled[0]?.title}. This is DGF's own score, not a Google metric.</p></div>}
+            : <div className="flex items-center gap-6"><ScoreRing score={score} /><p className="text-sm text-slate-500">Latest DigiMithra completeness score for {enabled[0]?.title}. This is DigiMithra's own score, not a Google metric.</p></div>}
         </div>
         <div className="card">
           <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">Locations</h2><Link className="text-sm text-gold-500" to="/google-business">Manage →</Link></div>

@@ -1,12 +1,12 @@
-/** DGF brand tokens — swap the gold/ink values once the final logo palette is confirmed. */
+/** DigiMithra brand tokens. The `gold` key is kept as the accent-colour name across the code base but now holds the DigiMithra green. */
 export default {
   darkMode: 'class',
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        gold: { 50: '#fff9e6', 100: '#ffefb8', 300: '#f5cf5b', 400: '#e8b923', 500: '#d4a017', 600: '#b3830f', 700: '#8a640c' },
-        ink: { 950: '#080b14', 900: '#0d1220', 800: '#131a2c', 700: '#1c2540', 600: '#2a3556' },
+        gold: { 50: '#f3fbe0', 100: '#e2f5b8', 300: '#b5e04d', 400: '#9bd022', 500: '#84bd00', 600: '#6a9a00', 700: '#517500' },
+        ink: { 950: '#050505', 900: '#0a0a0a', 800: '#111411', 700: '#1b201a', 600: '#2a3127' },
       },
       fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
     },

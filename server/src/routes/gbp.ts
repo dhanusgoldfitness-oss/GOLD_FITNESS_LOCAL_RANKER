@@ -124,7 +124,7 @@ gbp.post('/locations/:id/audit', wrap(async (req, res) => {
     recommendations: result.recommendations, rules_version: RULES_VERSION,
   }).select().single();
   if (error) throw new ApiError(500, 'INTERNAL', 'Could not save audit.');
-  res.json({ audit: data, rules: result.rules, unknown: result.unknown, note: 'DGF profile completeness score — not a Google-provided score.' });
+  res.json({ audit: data, rules: result.rules, unknown: result.unknown, note: 'DigiMithra profile completeness score — not a Google-provided score.' });
 }));
 
 gbp.get('/locations/:id/audits', wrap(async (req, res) => {

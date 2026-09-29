@@ -138,14 +138,14 @@ export const Toggle = ({ checked, onChange, disabled, label }: { checked: boolea
 );
 
 export const ScoreRing = ({ score, size = 140 }: { score: number; size?: number }) => {
-  const r = size / 2 - 10, c = 2 * Math.PI * r, color = score >= 80 ? '#10b981' : score >= 50 ? '#d4a017' : '#ef4444';
+  const r = size / 2 - 10, c = 2 * Math.PI * r, color = score >= 80 ? '#10b981' : score >= 50 ? '#84bd00' : '#ef4444';
   return (
     <div className="relative" style={{ width: size, height: size }} role="img" aria-label={`Score ${score} out of 100`}>
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} stroke="currentColor" className="text-slate-500/20" strokeWidth="10" fill="none" />
         <circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth="10" fill="none" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - score / 100)} />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-extrabold">{score}%</span><span className="text-[10px] uppercase text-slate-500">DGF score</span></div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-3xl font-extrabold">{score}%</span><span className="text-[10px] uppercase text-slate-500">DigiMithra score</span></div>
     </div>
   );
 };

@@ -75,7 +75,7 @@ export default function SettingsPage() {
       {tab === 'legal' && (
         <div className="card prose-sm max-w-3xl space-y-3 text-sm">
           <h2 className="text-lg font-bold">Terms & Privacy (summary)</h2>
-          <p><b>Dhanus Gold Fitness — DGF Local Ranker.</b> DGF Local Ranker helps you manage your own Google Business Profile. It uses official Google APIs with your permission and stores only the data needed to run the features you use.</p>
+          <p><b>DigiMithra.</b> DigiMithra helps you manage your own Google Business Profile. It uses official Google APIs with your permission and stores only the data needed to run the features you use.</p>
           <p>You stay responsible for the content you publish. AI-generated text is a draft: you review and approve it before anything is written to Google. Google refresh tokens are encrypted and never sent to your browser.</p>
           <p>You can disconnect Google at any time from Google Business → Disconnect, and delete your account from Danger zone.</p>
           <p className="rounded-lg bg-amber-500/10 p-3 text-xs">Placeholder summary — have final Terms of Service and a Privacy Policy reviewed by a qualified professional before public launch.</p>

@@ -1,4 +1,4 @@
-# DGF Local Ranker — Dhanus Gold Fitness
+# DigiMithra — Local SEO & Google Business Profile
 
 Local SEO + Google Business Profile SaaS. React + Vite + TS + Tailwind (client) · Node/Express (server) · Supabase · Gemini · Google Business Profile APIs.
 

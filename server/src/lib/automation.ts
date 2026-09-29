@@ -43,7 +43,7 @@ async function runAction(userId: string, rule: any, p: Record<string, any>) {
     }
     case 'whatsapp_lead':
       if (!p.phone) throw new Error('Lead has no phone number');
-      await sendText(userId, p.phone, render(cfg.message ?? 'Hi {name}, thanks for your enquiry at Dhanus Gold Fitness! We will call you shortly.', p));
+      await sendText(userId, p.phone, render(cfg.message ?? 'Hi {name}, thanks for your enquiry at DigiMithra! We will call you shortly.', p));
       break;
     case 'draft_review_reply': {   // creates a DRAFT only — a human still publishes
       if (!p.reviewId) throw new Error('No review in event');

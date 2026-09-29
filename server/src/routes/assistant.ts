@@ -50,7 +50,7 @@ assistant.post('/assistant/chat', validate(body), wrap(async (req, res) => {
     const data = await facts(uid, location_id);
     const convo = messages.map((m) => `${m.role === 'user' ? 'Owner' : 'Assistant'}: ${m.text}`).join('\n');
     const reply = await gemini(
-      `You are the DGF Local Ranker assistant, a local SEO advisor for gym owners.\n` +
+      `You are the DigiMithra assistant, a local SEO advisor for gym owners.\n` +
       `Answer ONLY from the business data below plus general local-SEO knowledge. If the data lacks something (e.g. a rank was never checked), say so; never invent numbers. ` +
       `You cannot change anything; suggest which app page to use (Google Audit, One-Click Optimization, Reviews, Keywords, Local Rank Checker, Competitors). Be concise.\n\n` +
       `BUSINESS DATA: ${JSON.stringify(data)}\n\nCONVERSATION:\n${convo}\nAssistant:`, { temperature: 0.5 });

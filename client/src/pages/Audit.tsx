@@ -26,7 +26,7 @@ export default function Audit() {
 
   return (
     <>
-      <PageHeader title="Google Profile Audit" subtitle="DGF's transparent completeness score for your Business Profile (0–100). This is not a Google-provided score." />
+      <PageHeader title="Google Profile Audit" subtitle="DigiMithra's transparent completeness score for your Business Profile (0–100). This is not a Google-provided score." />
       <div className="mb-6 flex flex-wrap items-end gap-3">
         <LocationPicker enabled={L.enabled} selected={L.selected} setSelected={L.setSelected} />
         <button className="btn-primary" onClick={analyze} disabled={busy === 'audit'}><Gauge size={16} />{busy === 'audit' ? 'Analyzing…' : 'Analyze'}</button>
@@ -54,7 +54,7 @@ export default function Audit() {
           </div>
           {chart.length > 1 && (
             <div className="card"><h2 className="mb-3 font-bold">Audit history</h2>
-              <div className="h-56"><ResponsiveContainer><AreaChart data={chart}><CartesianGrid strokeDasharray="3 3" opacity={0.15} /><XAxis dataKey="d" fontSize={12} /><YAxis domain={[0, 100]} fontSize={12} /><Tooltip /><Area type="monotone" dataKey="score" stroke="#d4a017" fill="#d4a01733" /></AreaChart></ResponsiveContainer></div></div>
+              <div className="h-56"><ResponsiveContainer><AreaChart data={chart}><CartesianGrid strokeDasharray="3 3" opacity={0.15} /><XAxis dataKey="d" fontSize={12} /><YAxis domain={[0, 100]} fontSize={12} /><Tooltip /><Area type="monotone" dataKey="score" stroke="#84bd00" fill="#84bd0033" /></AreaChart></ResponsiveContainer></div></div>
           )}
         </>
       )}
