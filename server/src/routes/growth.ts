@@ -11,6 +11,7 @@ import { ownLocation, spendCredit } from './gbp.js';
 import { fireEvent } from '../lib/automation.js';
 import { geminiJson } from '../lib/gemini.js';
 import { isUnlimited, UNLIMITED } from '../lib/unlimited.js';
+import { generateImage } from '../lib/image.js';
 
 export const growth = Router();
 growth.use(auth);
@@ -334,20 +335,10 @@ growth.post('/ai-images', validate(z.object({ prompt: z.string().trim().min(3).m
   if (req.body.location_id) await ownLocation(uid, req.body.location_id);
   const settle = await spendCredit(uid, 'ai_image', 1);
   try {
-    let r: Response;
-    try {
-      r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${config.GEMINI_IMAGE_MODEL}:generateContent`, {
-        method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': config.GEMINI_API_KEY! },
-        body: JSON.stringify({ contents: [{ parts: [{ text: `Professional promotional image for a fitness gym. ${req.body.prompt}. No text, no logos.` }] }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } }),
-      });
-    } catch { throw new ApiError(503, 'OFFLINE', 'Could not reach Gemini.'); }
-    if (r.status === 429) throw new ApiError(429, 'RATE_LIMITED', 'Gemini quota exceeded.');
-    if (!r.ok) throw new ApiError(502, 'API_PENDING' as any, `Image model unavailable (${r.status}). Your Gemini plan may not include image generation.`);
-    const j: any = await r.json();
-    const part = j?.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData?.data);
-    if (!part) throw new ApiError(502, 'UPSTREAM', 'The model returned no image. Try a different prompt.');
-    const path = `${uid}/${Date.now()}.png`;
-    const up = await db().storage.from('dgf-media').upload(path, Buffer.from(part.inlineData.data, 'base64'), { contentType: part.inlineData.mimeType ?? 'image/png' });
+    const img = await generateImage(`Professional promotional image for a fitness gym. ${req.body.prompt}. No text, no logos.`);
+    const ext = img.mime.includes('jpeg') ? 'jpg' : 'png';
+    const path = `${uid}/${Date.now()}.${ext}`;
+    const up = await db().storage.from('dgf-media').upload(path, Buffer.from(img.data, 'base64'), { contentType: img.mime });
     if (up.error) throw new ApiError(500, 'INTERNAL', 'Could not store the image.');
     const { data } = await db().from('ai_media').insert({ user_id: uid, location_id: req.body.location_id ?? null, prompt: req.body.prompt, storage_path: path }).select().single();
     await settle(true);   // credit is only spent when an image was actually stored
