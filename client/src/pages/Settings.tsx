@@ -48,7 +48,7 @@ export default function SettingsPage() {
           {pref('notif_review_alerts', 'Review alerts', 'In-app alert when new negative reviews are synced.')}
           {pref('notif_email', 'Email activity notifications', 'Receive activity updates by email.', 'Email delivery not connected')}
           {pref('notif_whatsapp', 'WhatsApp notifications', 'Real-time review alerts on WhatsApp.', 'WhatsApp Cloud API not connected')}
-          {pref('auto_reply', 'Auto-reply to reviews', 'Automatic replies are disabled until reply quality is proven; drafts always need approval.', 'Disabled by design')}
+          {pref('auto_reply', 'Auto-draft replies for new reviews', 'AI writes a reply draft for every new review when reviews sync. Nothing is published until you approve it. Uses 1 AI credit per draft.')}
           <div className="card md:col-span-2"><label className="label">AI reply tone</label><select className="input max-w-xs" value={profile.reply_tone} onChange={(e) => patch({ reply_tone: e.target.value }, 'Tone saved')}>{['friendly', 'professional', 'energetic', 'empathetic'].map((t) => <option key={t}>{t}</option>)}</select></div>
         </div>
       )}

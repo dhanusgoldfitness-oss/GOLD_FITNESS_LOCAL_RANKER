@@ -17,6 +17,7 @@ const sentimentOf = (rating: number, _c?: string) => (rating >= 4 ? 'positive' :
 
 export async function syncReviews(uid: string, loc: any) {
   let token: string | undefined, fetched = 0, negatives = 0;
+  const newIds: string[] = [];
   do {
     const page = await G.listReviews(uid, loc.google_account_id, loc.google_location_id, token);
     const rows = (page.reviews ?? []).map((r) => {
@@ -44,12 +45,27 @@ export async function syncReviews(uid: string, loc: any) {
         const { data: row } = await db().from('reviews').select('id').eq('location_id', loc.id).eq('google_review_id', r.google_review_id).single();
         await fireEvent(uid, 'negative_review', `review-${r.google_review_id}`, { rating: r.rating, reviewer: r.reviewer_name ?? 'A customer', comment: (r.comment ?? '').slice(0, 200), business: loc.title, reviewId: row?.id, eventKey: r.google_review_id });
       }
+      // opt-in: draft (never publish) a reply for each brand-new, unanswered review
+      newIds.push(...rows.filter((x) => !seen.has(x.google_review_id) && !(x as any).reply_text).map((x) => x.google_review_id));
     }
     token = page.nextPageToken;
   } while (token && fetched < 1000);
+  let drafted = 0;
+  if (newIds.length) {
+    const { data: prof } = await db().from('profiles').select('auto_reply').eq('id', uid).single();
+    if (prof?.auto_reply) {
+      // skip reviews an automation already drafted; cap per sync to bound AI usage
+      const { data: todo } = await db().from('reviews').select('*').eq('location_id', loc.id).in('google_review_id', newIds).eq('reply_status', 'none').limit(10);
+      for (const rv of todo ?? []) {
+        try { await generateReplyDraft(uid, rv, loc); drafted++; }
+        catch (e) { console.error('[auto-draft]', e instanceof Error ? e.message : e); if (e instanceof ApiError && ['LIMIT_REACHED', 'NOT_CONNECTED'].includes(e.code)) break; }
+      }
+      if (drafted) await notify(uid, 'reply_drafts', `${drafted} reply draft(s) ready to approve`, `AI drafted replies for new reviews at ${loc.title}. Open Reviews to edit and publish.`, `drafts-${loc.id}-${Date.now()}`);
+    }
+  }
   await db().from('business_locations').update({ reviews_synced_at: new Date().toISOString() }).eq('id', loc.id);
   if (negatives) await notify(uid, 'negative_review', 'New negative review(s) need attention', `${negatives} new review(s) rated 1–2★ at ${loc.title}.`, `neg-${loc.id}-${new Date().toISOString().slice(0, 10)}`);
-  return { fetched, negatives };
+  return { fetched, negatives, drafted };
 }
 
 reviews.post('/locations/:id/reviews/sync', wrap(async (req, res) => {
@@ -100,10 +116,8 @@ async function ownReview(uid: string, id: string) {
   return data;
 }
 
-reviews.post('/reviews/:id/ai-reply', wrap(async (req, res) => {
-  const uid = req.user!.id;
-  const rv = await ownReview(uid, req.params.id);
-  const loc = await ownLocation(uid, rv.location_id);
+/** Writes an AI reply DRAFT for a review (never publishes). Charges 1 credit only on success. */
+export async function generateReplyDraft(uid: string, rv: any, loc: any) {
   const { data: prof } = await db().from('profiles').select('reply_tone').eq('id', uid).single();
   const settle = await spendCredit(uid, 'review_reply');
   try {
@@ -118,8 +132,15 @@ reviews.post('/reviews/:id/ai-reply', wrap(async (req, res) => {
     await db().from('reviews').update({ reply_text: draft, reply_status: 'draft' }).eq('id', rv.id);
     await db().from('review_reply_log').insert({ user_id: uid, review_id: rv.id, action: 'ai_generated', body: draft });
     await settle(true);
-    res.json({ draft, requiresManualReview: low });
+    return { draft, requiresManualReview: low };
   } catch (e) { await settle(false); throw e; }
+}
+
+reviews.post('/reviews/:id/ai-reply', wrap(async (req, res) => {
+  const uid = req.user!.id;
+  const rv = await ownReview(uid, req.params.id);
+  const loc = await ownLocation(uid, rv.location_id);
+  res.json(await generateReplyDraft(uid, rv, loc));
 }));
 
 reviews.put('/reviews/:id/draft', validate(z.object({ text: z.string().trim().min(1).max(4000) })), wrap(async (req, res) => {
