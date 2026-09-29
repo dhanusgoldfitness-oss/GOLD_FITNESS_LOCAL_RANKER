@@ -15,6 +15,16 @@ import Posts from './pages/Posts';
 import Photos from './pages/Photos';
 import Plan from './pages/Plan';
 import SettingsPage from './pages/Settings';
+import Keywords from './pages/Keywords';
+import RankChecker from './pages/RankChecker';
+import Competitors from './pages/Competitors';
+import Performance from './pages/Performance';
+import Reports from './pages/Reports';
+import AiImages from './pages/AiImages';
+import Leads from './pages/Leads';
+import Automations from './pages/Automations';
+import WhatsApp from './pages/WhatsApp';
+import Admin from './pages/Admin';
 import ModuleStatus from './pages/ModuleStatus';
 import { Categories, Customers, Expenses, Services } from './pages/Crud';
 import { BillingSettings, Invoices, TallyExport } from './pages/Billing';
@@ -25,15 +35,11 @@ function Protected() {
   return session ? <Layout /> : <Navigate to="/login" replace />;
 }
 
-const mods: [string, string, string, string][] = [
+// Modules whose providers are not built/connected yet: they show their real status from the API.
+const pending: [string, string, string, string][] = [
   ['ai-mode', 'ai_mode', 'AI Mode', 'Conversational assistant for your local SEO.'],
-  ['ai-images', 'ai_images', 'AI Images', 'Generate promotional visuals for posts.'],
   ['ai-video', 'ai_video', 'AI Video', 'Generate short promo videos.'],
-  ['social', 'social', 'Social Post', 'Connect social accounts and publish.'],
-  ['rank-checker', 'rank_checker', 'Local Rank Checker', 'Geo-grid rank tracking around your gym.'],
-  ['keywords', 'keywords', 'Keyword Suggestion', 'Track keywords and rank history.'],
-  ['competitors', 'competitors', 'Competitor Analysis', 'Compare against nearby gyms.'],
-  ['reports', 'reports', 'Reports', 'Monthly PDF performance reports.'],
+  ['social', 'ai_video', 'Social Post', 'Connect social accounts and publish.'],
 ];
 
 createRoot(document.getElementById('root')!).render(
@@ -56,6 +62,15 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/posts" element={<Posts />} />
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/photos" element={<Photos />} />
+              <Route path="/keywords" element={<Keywords />} />
+              <Route path="/rank-checker" element={<RankChecker />} />
+              <Route path="/competitors" element={<Competitors />} />
+              <Route path="/performance" element={<Performance />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/ai-images" element={<AiImages />} />
+              <Route path="/leads" element={<Leads />} />
+              <Route path="/automations" element={<Automations />} />
+              <Route path="/whatsapp" element={<WhatsApp />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/services" element={<Services />} />
               <Route path="/categories" element={<Categories />} />
@@ -64,7 +79,8 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/tally-export" element={<TallyExport />} />
               <Route path="/billing-settings" element={<BillingSettings />} />
               <Route path="/settings" element={<SettingsPage />} />
-              {mods.map(([path, key, title, desc]) => <Route key={path} path={`/${path}`} element={<ModuleStatus moduleKey={key} title={title} description={desc} />} />)}
+              <Route path="/admin" element={<Admin />} />
+              {pending.map(([path, key, title, desc]) => <Route key={path} path={`/${path}`} element={<ModuleStatus moduleKey={key} title={title} description={desc} />} />)}
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

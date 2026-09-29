@@ -6,6 +6,7 @@ import { audit, db } from '../lib/supabase.js';
 import * as G from '../lib/google.js';
 import { gemini, geminiJson } from '../lib/gemini.js';
 import { notify } from './core.js';
+import { fireEvent } from '../lib/automation.js';
 import { ownLocation, spendCredit } from './gbp.js';
 
 export const reviews = Router();
@@ -14,16 +15,13 @@ reviews.use(auth);
 const STAR: Record<string, number> = { ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5 };
 const sentimentOf = (rating: number, _c?: string) => (rating >= 4 ? 'positive' : rating === 3 ? 'neutral' : 'negative');
 
-reviews.post('/locations/:id/reviews/sync', wrap(async (req, res) => {
-  const uid = req.user!.id;
-  const loc = await ownLocation(uid, req.params.id);
+export async function syncReviews(uid: string, loc: any) {
   let token: string | undefined, fetched = 0, negatives = 0;
   do {
     const page = await G.listReviews(uid, loc.google_account_id, loc.google_location_id, token);
     const rows = (page.reviews ?? []).map((r) => {
       const rating = STAR[r.starRating] ?? 0;
       const gid = String(r.reviewId ?? r.name?.split('/').pop());
-      if (rating >= 1 && rating <= 2) negatives++;
       return {
         user_id: uid, location_id: loc.id, google_review_id: gid,
         reviewer_name: r.reviewer?.displayName ?? null, rating, comment: r.comment ?? null, sentiment: sentimentOf(rating),
@@ -32,17 +30,32 @@ reviews.post('/locations/:id/reviews/sync', wrap(async (req, res) => {
       };
     }).filter((r) => r.rating >= 1);
     if (rows.length) {
-      // ON CONFLICT (location_id, google_review_id): duplicate sync is safe. Local drafts (no Google reply) are preserved
-      // because reply fields are only included when Google reports a published reply.
+      // which of these are brand new? (for negative-review automations — fired once per review)
+      const ids = rows.map((r) => r.google_review_id);
+      const { data: existing } = await db().from('reviews').select('google_review_id').eq('location_id', loc.id).in('google_review_id', ids);
+      const seen = new Set((existing ?? []).map((e) => e.google_review_id));
+      // ON CONFLICT (location_id, google_review_id): duplicate sync is safe; local drafts survive because reply fields
+      // are only included when Google reports a published reply.
       const { error } = await db().from('reviews').upsert(rows, { onConflict: 'location_id,google_review_id', ignoreDuplicates: false });
       if (error) throw new ApiError(500, 'INTERNAL', 'Could not save reviews.');
       fetched += rows.length;
+      for (const r of rows.filter((x) => x.rating <= 2 && !seen.has(x.google_review_id))) {
+        negatives++;
+        const { data: row } = await db().from('reviews').select('id').eq('location_id', loc.id).eq('google_review_id', r.google_review_id).single();
+        await fireEvent(uid, 'negative_review', `review-${r.google_review_id}`, { rating: r.rating, reviewer: r.reviewer_name ?? 'A customer', comment: (r.comment ?? '').slice(0, 200), business: loc.title, reviewId: row?.id, eventKey: r.google_review_id });
+      }
     }
     token = page.nextPageToken;
   } while (token && fetched < 1000);
   await db().from('business_locations').update({ reviews_synced_at: new Date().toISOString() }).eq('id', loc.id);
-  if (negatives) await notify(uid, 'negative_review', 'Negative review(s) need attention', `${negatives} review(s) rated 1–2★ at ${loc.title}.`, `neg-${loc.id}-${new Date().toISOString().slice(0, 10)}`);
-  res.json({ fetched });
+  if (negatives) await notify(uid, 'negative_review', 'New negative review(s) need attention', `${negatives} new review(s) rated 1–2★ at ${loc.title}.`, `neg-${loc.id}-${new Date().toISOString().slice(0, 10)}`);
+  return { fetched, negatives };
+}
+
+reviews.post('/locations/:id/reviews/sync', wrap(async (req, res) => {
+  const uid = req.user!.id;
+  const loc = await ownLocation(uid, req.params.id);
+  res.json(await syncReviews(uid, loc));
 }));
 
 const listQ = z.object({

@@ -13,6 +13,13 @@ const schema = z.object({
   OAUTH_STATE_SECRET: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default('gemini-2.0-flash'),
+  GEMINI_IMAGE_MODEL: z.string().default('gemini-2.0-flash-preview-image-generation'),
+  GOOGLE_MAPS_API_KEY: z.string().optional(),
+  WHATSAPP_TOKEN: z.string().optional(),
+  WHATSAPP_PHONE_ID: z.string().optional(),
+  WHATSAPP_VERIFY_TOKEN: z.string().optional(),
+  WHATSAPP_APP_SECRET: z.string().optional(),
+  SCHEDULER_ENABLED: z.string().default('true'),
 });
 
 export const config = schema.parse(process.env);
@@ -23,4 +30,6 @@ export const configured = {
   google: !!(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET),
   crypto: !!(config.TOKEN_ENC_KEY && /^[0-9a-f]{64}$/i.test(config.TOKEN_ENC_KEY)),
   gemini: !!config.GEMINI_API_KEY,
+  maps: !!config.GOOGLE_MAPS_API_KEY,
+  whatsapp: !!(config.WHATSAPP_TOKEN && config.WHATSAPP_PHONE_ID),
 };

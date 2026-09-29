@@ -6,6 +6,9 @@ import { audit, db } from '../lib/supabase.js';
 import { gemini } from '../lib/gemini.js';
 import * as G from '../lib/google.js';
 import { ownLocation, spendCredit } from './gbp.js';
+import { notify } from './core.js';
+import { fireEvent } from '../lib/automation.js';
+import { configured } from '../config.js';
 
 export const business = Router();
 business.use(auth);
@@ -162,35 +165,37 @@ business.post('/posts/generate', validate(z.object({ location_id: z.string().uui
     res.json({ text: text.trim().slice(0, 1500) });
   } catch (e) { await settle(false); throw e; }
 }));
-business.post('/posts/:id/publish', wrap(async (req, res) => {
-  const uid = req.user!.id;
-  const { data: p } = await db().from('content_posts').select('*').eq('id', req.params.id).eq('user_id', uid).maybeSingle();
-  if (!p || !p.location_id) throw new ApiError(404, 'NOT_FOUND', 'Post not found.');
-  if (p.status === 'published') throw new ApiError(409, 'VALIDATION', 'Already published.');
+export async function publishPost(uid: string, p: any) {
   const loc = await ownLocation(uid, p.location_id);
   try {
     const body: any = { languageCode: 'en', summary: p.body, topicType: p.post_type === 'offer' ? 'OFFER' : p.post_type === 'event' ? 'EVENT' : 'STANDARD' };
     if (p.image_url) body.media = [{ mediaFormat: 'PHOTO', sourceUrl: p.image_url }];
     const r: any = await G.gsend(uid, 'POST', `https://mybusiness.googleapis.com/v4/${loc.google_account_id}/${loc.google_location_id}/localPosts`, body, 'Publish post');
     await db().from('content_posts').update({ status: 'published', external_ref: r.name ?? null, publish_error: null }).eq('id', p.id);
-    res.json({ ok: true, external_ref: r.name });
+    return r.name as string | undefined;
   } catch (e) {
     await db().from('content_posts').update({ status: 'failed', publish_error: e instanceof Error ? e.message : 'Failed' }).eq('id', p.id);
+    await notify(uid, 'failed_post', 'A Google post failed to publish', e instanceof Error ? e.message : 'Failed', `post-fail-${p.id}`);
+    await fireEvent(uid, 'failed_post', `post-${p.id}`, { title: p.title ?? 'Post', eventKey: p.id }).catch(() => {});
     throw e;
   }
+}
+business.post('/posts/:id/publish', wrap(async (req, res) => {
+  const uid = req.user!.id;
+  const { data: p } = await db().from('content_posts').select('*').eq('id', req.params.id).eq('user_id', uid).maybeSingle();
+  if (!p || !p.location_id) throw new ApiError(404, 'NOT_FOUND', 'Post not found.');
+  if (p.status === 'published') throw new ApiError(409, 'VALIDATION', 'Already published.');
+  res.json({ ok: true, external_ref: await publishPost(uid, p) });
 }));
 
-// ---- modules not yet implemented: honest status, no fake data ----
+// ---- module readiness: real status from server config, no fake data ----
 business.get('/modules/status', wrap(async (_req, res) => {
-  const pending = (phase: string, note: string) => ({ status: 'API_PENDING', phase, note });
+  const st = (ok: boolean, need: string) => ({ status: ok ? 'CONNECTED' : 'NOT_CONNECTED', phase: '', note: ok ? 'Ready.' : need });
   res.json({
-    rank_checker: pending('Phase 11', 'Geo-grid needs a rank-data provider; not connected yet.'),
-    keywords: pending('Phase 10', 'Keyword library and rank history tables arrive in Phase 10.'),
-    competitors: pending('Phase 12', 'Competitor tracking arrives in Phase 12.'),
-    reports: pending('Phase 16', 'PDF reports arrive in Phase 16.'),
-    ai_images: pending('Phase 14', 'Image generation provider not connected.'),
-    ai_video: pending('Phase 14', 'Video generation provider not connected.'),
-    social: { status: 'NOT_CONNECTED', phase: 'Phase 13', note: 'No social accounts connected.' },
-    ai_mode: pending('Phase 7+', 'Conversational assistant not built yet.'),
+    ai_mode: { status: 'API_PENDING', phase: 'Later', note: 'Conversational assistant is not built yet.' },
+    ai_video: { status: 'API_PENDING', phase: 'Later', note: 'No video generation provider is connected.' },
+    maps: st(configured.maps, 'Set GOOGLE_MAPS_API_KEY (Places API New) on the server to enable rank checks and competitors.'),
+    whatsapp: st(configured.whatsapp, 'Set WHATSAPP_TOKEN and WHATSAPP_PHONE_ID on the server.'),
+    gemini: st(configured.gemini, 'Set GEMINI_API_KEY on the server.'),
   });
 }));

@@ -29,7 +29,12 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: '/rank-checker', label: 'Local Rank Checker', icon: <Map size={16} /> },
     { to: '/keywords', label: 'Keyword Suggestion', icon: <Key size={16} /> },
     { to: '/competitors', label: 'Competitor Analysis', icon: <Trophy size={16} /> },
+    { to: '/performance', label: 'Performance', icon: <TrendingUp size={16} /> },
     { to: '/reports', label: 'Reports', icon: <FileBarChart size={16} /> } ] },
+  { group: 'Growth', items: [
+    { to: '/leads', label: 'Lead CRM', icon: <Users size={16} /> },
+    { to: '/automations', label: 'Automations', icon: <Wand2 size={16} /> },
+    { to: '/whatsapp', label: 'WhatsApp', icon: <MessageSquare size={16} /> } ] },
   { group: 'Billing', items: [
     { to: '/invoices', label: 'Invoices', icon: <Receipt size={16} /> },
     { to: '/customers', label: 'Customers', icon: <Users size={16} /> },
@@ -88,6 +93,7 @@ export default function Layout() {
             ))}
           </div>
         ))}
+        {profile?.role === 'super_admin' && <NavLink to="/admin" className={({ isActive }) => `mt-4 flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${isActive ? 'bg-gold-500/15 font-semibold text-gold-500' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-ink-700'}`}><Target size={16} />Admin</NavLink>}
       </nav>
       <div className="flex items-center gap-2 border-t border-slate-200 p-3 dark:border-ink-700">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-500 font-bold text-ink-950">{(profile?.full_name ?? '?')[0]?.toUpperCase()}</div>

@@ -18,8 +18,8 @@ core.get('/diagnostics', auth, wrap(async (req, res) => {
     google_oauth: { status: configured.google ? 'CONNECTED' : 'NOT_CONNECTED' },
     token_encryption: { status: configured.crypto ? 'CONNECTED' : 'NOT_CONNECTED', detail: configured.crypto ? undefined : 'TOKEN_ENC_KEY must be 64 hex chars' },
     gemini: { status: configured.gemini ? 'CONNECTED' : 'NOT_CONNECTED' },
-    whatsapp: { status: 'NOT_CONNECTED', detail: 'Phase 19' },
-    rank_provider: { status: 'NOT_CONNECTED', detail: 'Phase 11' },
+    whatsapp: { status: configured.whatsapp ? 'CONNECTED' : 'NOT_CONNECTED', detail: configured.whatsapp ? undefined : 'Set WHATSAPP_TOKEN and WHATSAPP_PHONE_ID' },
+    rank_provider: { status: configured.maps ? 'CONNECTED' : 'NOT_CONNECTED', detail: configured.maps ? undefined : 'Set GOOGLE_MAPS_API_KEY (Places API New)' },
   };
   try { await db().from('plans').select('id').limit(1); checks.database = { status: 'CONNECTED' }; }
   catch (e) { checks.database = { status: 'ERROR', detail: 'Database query failed' }; }

@@ -40,3 +40,20 @@ test('oauth state: valid, tampered, garbage', () => {
   assert.equal(verifyState('garbage'), null);
   assert.equal(verifyState(signState('user-1', -1000)), null);   // expired
 });
+
+import { makeGrid, rankChange, bandOf } from '../src/lib/geogrid.js';
+test('geo grid: size, centre point and symmetry', () => {
+  const g = makeGrid(12.9, 77.6, 5, 3);
+  assert.equal(g.length, 25);
+  assert.equal(g[12].lat, 12.9); assert.equal(g[12].lng, 77.6);            // centre cell
+  assert.ok(Math.abs((g[0].lat - 12.9) + (g[24].lat - 12.9)) < 1e-5);        // opposite corners mirror
+  assert.ok(Math.abs(g[0].lat - 12.9) * 110.574 > 2.9 && Math.abs(g[0].lat - 12.9) * 110.574 < 3.1);   // ~3 km to the edge
+  assert.throws(() => makeGrid(0, 0, 4, 1));
+});
+test('rank change: positive = improved, unknown = null', () => {
+  assert.equal(rankChange(8, 3), 5); assert.equal(rankChange(3, 8), -5);
+  assert.equal(rankChange(null, 3), null); assert.equal(rankChange(3, undefined), null);
+});
+test('rank bands', () => {
+  assert.deepEqual([bandOf(1), bandOf(3), bandOf(4), bandOf(11), bandOf(25), bandOf(null)], ['top3', 'top3', 'top10', 'top20', 'low', 'none']);
+});
