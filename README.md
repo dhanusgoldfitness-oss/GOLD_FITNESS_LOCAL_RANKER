@@ -3,7 +3,7 @@
 Local SEO + Google Business Profile SaaS. React + Vite + TS + Tailwind (client) · Node/Express (server) · Supabase · Gemini · Google Business Profile APIs.
 
 ## Status
-All 27 phases of the build guide are implemented in code. Items marked (needs keys) work as soon as the credential is provided; until then the UI shows a real `NOT_CONNECTED` / `API_PENDING` status, never sample data.
+Phases 0–25 of the build guide are implemented in code. Phase 26 (full QA — only unit tests exist so far) and phase 27 (production deployment) are still to do. Items marked (needs keys) work as soon as the credential is provided; until then the UI shows a real `NOT_CONNECTED` / `API_PENDING` status, never sample data.
 
 | Area | Notes |
 |---|---|
