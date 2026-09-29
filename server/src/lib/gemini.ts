@@ -1,0 +1,33 @@
+import { config, configured } from '../config.js';
+import { ApiError } from './errors.js';
+
+export interface GenOptions { json?: boolean; temperature?: number }
+
+/** Call Gemini via REST from the backend only. Returns raw text. */
+export async function gemini(prompt: string, opts: GenOptions = {}): Promise<string> {
+  if (!configured.gemini) throw new ApiError(503, 'NOT_CONNECTED', 'Gemini API key is not configured on the server.');
+  let r: Response;
+  try {
+    r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${config.GEMINI_MODEL}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': config.GEMINI_API_KEY! },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: opts.temperature ?? 0.6, ...(opts.json ? { responseMimeType: 'application/json' } : {}) },
+      }),
+    });
+  } catch { throw new ApiError(503, 'OFFLINE', 'Could not reach Gemini.'); }
+  if (r.status === 429) throw new ApiError(429, 'RATE_LIMITED', 'Gemini quota exceeded. Try again shortly.');
+  if (r.status === 401 || r.status === 403) throw new ApiError(502, 'UPSTREAM', 'Gemini rejected the API key.');
+  if (!r.ok) throw new ApiError(502, 'UPSTREAM', `Gemini error (${r.status}).`);
+  const j: any = await r.json();
+  const text = j?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ?? '';
+  if (!text) throw new ApiError(502, 'UPSTREAM', 'Gemini returned an empty response.');
+  return text;
+}
+
+export async function geminiJson<T>(prompt: string): Promise<T> {
+  const text = await gemini(prompt, { json: true, temperature: 0.4 });
+  try { return JSON.parse(text.replace(/^```json\s*|```$/g, '').trim()) as T; }
+  catch { throw new ApiError(502, 'UPSTREAM', 'Gemini returned unparseable output. Please retry.'); }
+}
