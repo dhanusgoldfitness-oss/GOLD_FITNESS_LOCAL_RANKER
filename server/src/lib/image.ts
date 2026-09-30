@@ -21,7 +21,23 @@ async function post(url: string, body: unknown) {
   catch { throw new ApiError(503, 'OFFLINE', 'Could not reach Gemini.'); }
 }
 async function reason(r: Response) {
-  try { const j: any = await r.json(); return String(j?.error?.message ?? '').split('\n')[0].slice(0, 220); } catch { return ''; }
+  try {
+    const t = await r.text();
+    try { const j: any = JSON.parse(t); return String(j?.error?.message ?? j?.message ?? t).split('\n')[0].slice(0, 260); }
+    catch { return t.slice(0, 260); }
+  } catch { return ''; }
+}
+
+/** Image-capable models this API key can actually call (from Google's ListModels). */
+async function discoverImageModels(): Promise<string[]> {
+  try {
+    const r = await fetch(`${GL}/models?pageSize=200`, { headers: headers() });
+    if (!r.ok) return [];
+    const j: any = await r.json();
+    return (j.models ?? [])
+      .filter((m: any) => /image/i.test(m.name) && (m.supportedGenerationMethods ?? []).includes('generateContent'))
+      .map((m: any) => String(m.name).replace(/^models\//, ''));
+  } catch { return []; }
 }
 
 /** Tries the classic generateContent call, then the newer Interactions API. Google's real error is surfaced. */
@@ -46,5 +62,13 @@ export async function generateImage(prompt: string): Promise<{ data: string; mim
     console.error(`[image ${a.name}] ${r.status} ${lastWhy}`);
     if (r.status === 401 || r.status === 403) break;
   }
-  throw new ApiError(502, 'API_PENDING' as any, `Image generation failed with ${config.GEMINI_IMAGE_MODEL} (${lastStatus}). ${lastWhy} Check the model name in GEMINI_IMAGE_MODEL and that your Gemini plan includes image generation.`.trim());
+  // Configured model failed: try image models this key can really use.
+  const found = (await discoverImageModels()).filter((m) => m !== config.GEMINI_IMAGE_MODEL);
+  for (const m of found.slice(0, 3)) {
+    const r = await post(`${GL}/models/${m}:generateContent`, { contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } });
+    if (r.ok) { const img = findImage(await r.json().catch(() => null)); if (img) { console.warn(`[image] fell back to ${m}; set GEMINI_IMAGE_MODEL=${m}`); return img; } }
+    else console.error(`[image ${m}] ${r.status} ${await reason(r)}`);
+  }
+  const hint = found.length ? ` Models your key lists: ${found.slice(0, 5).join(', ')}.` : ' Your key lists no image-capable models (enable billing in Google AI Studio).';
+  throw new ApiError(502, 'API_PENDING' as any, `Image generation failed with ${config.GEMINI_IMAGE_MODEL} (${lastStatus}). ${lastWhy || 'No reason given by Google.'}${hint}`.trim());
 }
