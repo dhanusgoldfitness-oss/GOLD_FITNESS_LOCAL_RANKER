@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const { busy, run } = useAction();
   const [name, setName] = useState(profile?.full_name ?? '');
   const [phone, setPhone] = useState(profile?.phone ?? '');
+  const [confirmDel, setConfirmDel] = useState('');
   const [pw, setPw] = useState({ next: '', confirm: '' });
   const diag = useApi<{ checkedAt: string; checks: Record<string, { status: string; detail?: string }> }>(tab === 'diagnostics' ? '/diagnostics' : null, [tab]);
   const conn = useApi<{ connection: { status: string; google_email?: string } }>(tab === 'connections' ? '/google/status' : null, [tab]);
@@ -64,7 +65,7 @@ export default function SettingsPage() {
       )}
 
       {tab === 'diagnostics' && (
-        <div className="card">{diag.loading ? <PageLoading /> : diag.error ? <ErrorBox error={diag.error} onRetry={diag.reload} /> : (
+        <div className="card">{diag.error ? <ErrorBox error={diag.error} onRetry={diag.reload} /> : (diag.loading || !diag.data) ? <PageLoading /> : (
           <>
             <div className="mb-3 flex items-center justify-between"><h2 className="font-bold">System diagnostics</h2><span className="text-xs text-slate-500">Checked {fmtDate(diag.data!.checkedAt)}</span></div>
             <div className="grid gap-3 md:grid-cols-2">{Object.entries(diag.data!.checks).map(([k, v]) => (
@@ -74,19 +75,40 @@ export default function SettingsPage() {
       )}
 
       {tab === 'legal' && (
-        <div className="card prose-sm max-w-3xl space-y-3 text-sm">
-          <h2 className="text-lg font-bold">Terms & Privacy (summary)</h2>
-          <p><b>DigiMithra.</b> DigiMithra helps you manage your own Google Business Profile. It uses official Google APIs with your permission and stores only the data needed to run the features you use.</p>
-          <p>You stay responsible for the content you publish. AI-generated text is a draft: you review and approve it before anything is written to Google. Google refresh tokens are encrypted and never sent to your browser.</p>
-          <p>You can disconnect Google at any time from Google Business → Disconnect, and delete your account from Danger zone.</p>
-          <p className="rounded-lg bg-amber-500/10 p-3 text-xs">Placeholder summary — have final Terms of Service and a Privacy Policy reviewed by a qualified professional before public launch.</p>
+        <div className="card max-w-3xl space-y-3 text-sm">
+          <h2 className="text-lg font-bold">Legal</h2>
+          <p><b>DigiMithra</b> helps you manage your own Google Business Profile using official Google APIs and only with your permission. Google refresh tokens are encrypted and never sent to your browser. AI text is always a draft you approve before anything is published.</p>
+          <div className="flex flex-wrap gap-2">
+            <a className="btn-ghost" href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>
+            <a className="btn-ghost" href="/terms" target="_blank" rel="noreferrer">Terms of Service</a>
+            <a className="btn-ghost" href="/data-deletion" target="_blank" rel="noreferrer">Data deletion</a>
+          </div>
+          <p className="text-xs text-slate-500">Questions: dhanusgoldfitness@gmail.com</p>
         </div>
       )}
 
       {tab === 'danger' && (
-        <div className="card max-w-xl border-red-500/40"><h2 className="mb-2 font-bold text-red-400">Danger zone</h2>
-          <p className="mb-4 text-sm">Sign out of this device. Account deletion and data export are handled by an administrator during this release — contact support to request it.</p>
-          <button className="btn-danger" onClick={signOut}>Sign out</button></div>
+        <div className="grid max-w-xl gap-4">
+          <div className="card"><h2 className="mb-2 font-bold">This device</h2>
+            <p className="mb-3 text-sm text-slate-500">Sign out of DigiMithra on this device.</p>
+            <button className="btn-ghost" onClick={signOut}>Sign out</button></div>
+          <div className="card"><h2 className="mb-2 font-bold">Download my data</h2>
+            <p className="mb-3 text-sm text-slate-500">A JSON file with your profile, locations, reviews, keywords, posts, leads and more.</p>
+            <button className="btn-ghost" disabled={busy === 'exp'} onClick={() => run('exp', async () => {
+              const d = await api<unknown>('/me/export');
+              const url = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' }));
+              const a = document.createElement('a'); a.href = url; a.download = 'digimithra-data.json'; a.click(); URL.revokeObjectURL(url);
+            }, 'Data downloaded')}>{busy === 'exp' ? 'Preparing…' : 'Download data (JSON)'}</button></div>
+          <div className="card border-red-500/40"><h2 className="mb-2 font-bold text-red-400">Delete my account</h2>
+            <p className="mb-3 text-sm">Permanently deletes your account and all data (locations, reviews, keywords, posts, leads, reports). Google is disconnected. This cannot be undone.</p>
+            <label className="label" htmlFor="delc">Type your email <b>{profile.email}</b> to confirm</label>
+            <input id="delc" className="input mb-3" value={confirmDel} onChange={(e) => setConfirmDel(e.target.value)} autoComplete="off" />
+            <button className="btn-danger" disabled={busy === 'del' || confirmDel.trim().toLowerCase() !== (profile.email ?? '').toLowerCase()} onClick={async () => {
+              if (!confirm('Delete your account and all data permanently?')) return;
+              const r = await run('del', () => api('/me/delete', { method: 'POST', body: { confirm: confirmDel.trim() } }), 'Account deleted');
+              if (r) await signOut();
+            }}>{busy === 'del' ? 'Deleting…' : 'Delete account permanently'}</button></div>
+        </div>
       )}
     </>
   );

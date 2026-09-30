@@ -47,6 +47,33 @@ core.patch('/me', auth, validate(profilePatch), wrap(async (req, res) => {
   res.json({ profile: data });
 }));
 
+// ---------- data export & account deletion (Settings → Danger zone) ----------
+const EXPORT_TABLES = ['business_locations', 'gbp_audits', 'reviews', 'content_posts', 'keywords', 'keyword_rank_history', 'geo_scans', 'competitors', 'performance_metrics', 'reports', 'leads', 'automation_rules', 'whatsapp_messages', 'customers', 'invoices', 'ai_media', 'ai_videos', 'social_posts', 'notifications'];
+core.get('/me/export', auth, wrap(async (req, res) => {
+  const uid = req.user!.id;
+  const out: Record<string, unknown> = { exportedAt: new Date().toISOString() };
+  const { data: prof } = await db().from('profiles').select('*').eq('id', uid).single();
+  out.profile = prof;
+  for (const t of EXPORT_TABLES) {
+    const { data, error } = await db().from(t).select('*').eq('user_id', uid).limit(10000);
+    if (!error) out[t] = data ?? [];
+  }
+  await audit(uid, 'data_export');
+  res.json(out);
+}));
+
+core.post('/me/delete', auth, validate(z.object({ confirm: z.string().min(3).max(200) })), wrap(async (req, res) => {
+  const uid = req.user!.id;
+  const { data: prof } = await db().from('profiles').select('email,role').eq('id', uid).single();
+  if (!prof || String(req.body.confirm).trim().toLowerCase() !== String(prof.email ?? '').toLowerCase()) throw new ApiError(400, 'VALIDATION', 'Email confirmation does not match.');
+  if (prof.role === 'super_admin') throw new ApiError(403, 'FORBIDDEN', 'Administrator accounts cannot be self-deleted.');
+  await db().from('google_connections').delete().eq('user_id', uid);
+  clearTokenCache(uid);
+  const { error } = await db().auth.admin.deleteUser(uid);   // all user data cascades from auth.users
+  if (error) throw new ApiError(500, 'INTERNAL', 'Could not delete the account. Please contact support.');
+  res.json({ ok: true });
+}));
+
 // ---------- notifications ----------
 core.get('/notifications', auth, wrap(async (req, res) => {
   const { data } = await db().from('notifications').select('*').eq('user_id', req.user!.id).order('created_at', { ascending: false }).limit(50);

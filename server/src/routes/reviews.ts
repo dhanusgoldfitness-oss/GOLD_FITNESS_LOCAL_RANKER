@@ -18,8 +18,10 @@ const sentimentOf = (rating: number, _c?: string) => (rating >= 4 ? 'positive' :
 export async function syncReviews(uid: string, loc: any) {
   let token: string | undefined, fetched = 0, negatives = 0;
   const newIds: string[] = [];
+  let googleTotal: number | null = null;
   do {
     const page = await G.listReviews(uid, loc.google_account_id, loc.google_location_id, token);
+    if (typeof page.totalReviewCount === 'number') googleTotal = page.totalReviewCount;
     const rows = (page.reviews ?? []).map((r) => {
       const rating = STAR[r.starRating] ?? 0;
       const gid = String(r.reviewId ?? r.name?.split('/').pop());
@@ -49,7 +51,7 @@ export async function syncReviews(uid: string, loc: any) {
       newIds.push(...rows.filter((x) => !seen.has(x.google_review_id) && !(x as any).reply_text).map((x) => x.google_review_id));
     }
     token = page.nextPageToken;
-  } while (token && fetched < 1000);
+  } while (token && fetched < 5000);
   let drafted = 0;
   if (newIds.length) {
     const { data: prof } = await db().from('profiles').select('auto_reply').eq('id', uid).single();
@@ -65,7 +67,7 @@ export async function syncReviews(uid: string, loc: any) {
   }
   await db().from('business_locations').update({ reviews_synced_at: new Date().toISOString() }).eq('id', loc.id);
   if (negatives) await notify(uid, 'negative_review', 'New negative review(s) need attention', `${negatives} new review(s) rated 1–2★ at ${loc.title}.`, `neg-${loc.id}-${new Date().toISOString().slice(0, 10)}`);
-  return { fetched, negatives, drafted };
+  return { fetched, negatives, drafted, googleTotal };
 }
 
 reviews.post('/locations/:id/reviews/sync', wrap(async (req, res) => {

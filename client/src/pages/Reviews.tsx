@@ -12,30 +12,36 @@ export default function Reviews() {
   const L = useLocations();
   const [f, setF] = useState({ rating: '', status: '', sentiment: '', sort: 'recent', q: '', page: 1 });
   const [qApplied, setQApplied] = useState('');
-  const qs = new URLSearchParams({ sort: f.sort, page: String(f.page), ...(L.selected && { location_id: L.selected }), ...(f.rating && { rating: f.rating }), ...(f.status && { status: f.status }), ...(f.sentiment && { sentiment: f.sentiment }), ...(qApplied && { q: qApplied }) });
+  const qs = new URLSearchParams({ pageSize: '50', sort: f.sort, page: String(f.page), ...(L.selected && { location_id: L.selected }), ...(f.rating && { rating: f.rating }), ...(f.status && { status: f.status }), ...(f.sentiment && { sentiment: f.sentiment }), ...(qApplied && { q: qApplied }) });
   const rv = useApi<Resp>(L.selected ? `/reviews?${qs}` : null, [L.selected]);
   const { busy, run } = useAction();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<string | null>(null);
+  const [gTotal, setGTotal] = useState<number | null>(null);
 
   if (L.loading) return <PageLoading />;
   if (!L.enabled.length) return <><PageHeader title="Reviews" /><NoLocations /></>;
   const set = (k: string, v: string) => setF({ ...f, [k]: v, page: k === 'page' ? Number(v) : 1 });
 
-  const sync = async () => { await run('sync', async () => { const r = await api<{ fetched: number }>(`/locations/${L.selected}/reviews/sync`, { method: 'POST', body: {} }); return r; }, 'Reviews synced'); rv.reload(); };
+  const sync = async () => { await run('sync', async () => { const r = await api<{ fetched: number; googleTotal: number | null }>(`/locations/${L.selected}/reviews/sync`, { method: 'POST', body: {} }); setGTotal(r.googleTotal); return r; }, 'Reviews synced'); rv.reload(); };
   const ai = async (r: Review) => { const x = await run('ai' + r.id, () => api<{ draft: string; requiresManualReview: boolean }>(`/reviews/${r.id}/ai-reply`, { method: 'POST', body: {} })); if (x) { setDrafts({ ...drafts, [r.id]: x.draft }); setEditing(r.id); rv.reload(); } };
   const save = async (r: Review) => { await run('s' + r.id, () => api(`/reviews/${r.id}/draft`, { method: 'PUT', body: { text: drafts[r.id] } }), 'Draft saved'); rv.reload(); };
   const publish = async (r: Review) => { if (!confirm('Publish this reply publicly on Google?')) return; await run('p' + r.id, () => api(`/reviews/${r.id}/publish`, { method: 'POST', body: { text: drafts[r.id] ?? r.reply_text } }), 'Reply published'); setEditing(null); rv.reload(); };
   const del = async (r: Review) => { if (!confirm('Delete this reply?')) return; await run('x' + r.id, () => api(`/reviews/${r.id}/reply`, { method: 'DELETE' }), 'Reply deleted'); rv.reload(); };
 
   const s = rv.data?.stats;
-  const pages = Math.max(1, Math.ceil((rv.data?.total ?? 0) / 15));
+  const pages = Math.max(1, Math.ceil((rv.data?.total ?? 0) / 50));
   return (
     <>
       <PageHeader title="Review Management" subtitle="Monitor, reply and manage your Google reviews. Every reply needs your approval before publishing." actions={<button className="btn-primary" onClick={sync} disabled={busy === 'sync'}><RefreshCw size={16} className={busy === 'sync' ? 'animate-spin' : ''} />Get reviews</button>} />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total reviews" value={s?.total ?? '—'} /><StatCard label="Replied" value={s?.replied ?? '—'} /><StatCard label="Pending" value={s?.pending ?? '—'} /><StatCard label="Avg rating" value={s?.avg ?? '—'} />
       </div>
+      {gTotal !== null && s && (
+        <div className={`mb-6 rounded-xl p-3 text-sm ${s.total >= gTotal ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+          Google reports <b>{gTotal}</b> reviews for this location; DigiMithra has <b>{s.total}</b>.{s.total < gTotal ? ' Google may hide some reviews from its API (for example reviews it filtered or has not finished processing). Click “Get reviews” again later.' : ' Everything is synced.'}
+        </div>
+      )}
       <div className="card mb-6 grid gap-3 md:grid-cols-6">
         <div className="md:col-span-2"><label className="label" htmlFor="rloc">Location</label><select id="rloc" className="input" value={L.selected} onChange={(e) => { L.setSelected(e.target.value); setF({ ...f, page: 1 }); }}>{L.enabled.map((l: Loc) => <option key={l.id} value={l.id}>{l.title}</option>)}</select></div>
         <div><label className="label">Stars</label><select className="input" value={f.rating} onChange={(e) => set('rating', e.target.value)}><option value="">All</option>{[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} ★</option>)}</select></div>

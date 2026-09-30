@@ -43,7 +43,9 @@ export function useApi<T>(path: string | null, deps: unknown[] = []) {
   }, [path]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [load, ...deps]);
-  return { data, error, loading, reload: load, setData };
+  // a freshly-set path has not rendered its first fetch yet: report loading, not an empty state
+  const pending = !!path && data === null && !error;
+  return { data, error, loading: loading || pending, reload: load, setData };
 }
 
 /** Run an action with loading state + toast on error. */
