@@ -18,7 +18,9 @@ import { configured } from './config.js';
 const app = express();
 app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors({ origin: config.FRONTEND_URL.split(','), credentials: false }));
+// accept comma-separated origins; tolerate spaces and trailing slashes typed into the env var
+const origins = config.FRONTEND_URL.split(',').map((o) => o.trim().replace(/\/+$/, '')).filter(Boolean);
+app.use(cors({ origin: origins, credentials: false }));
 app.use(express.json({ limit: '200kb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));   // raw body needed for webhook signatures
 
 app.use('/api', rateLimit({ windowMs: 60_000, limit: 240, standardHeaders: true, legacyHeaders: false, message: { error: { code: 'RATE_LIMITED', message: 'Too many requests. Slow down.' } } }));
