@@ -17,7 +17,8 @@ core.get('/diagnostics', auth, wrap(async (req, res) => {
     supabase: { status: configured.supabase ? 'CONNECTED' : 'NOT_CONNECTED' },
     google_oauth: { status: configured.google ? 'CONNECTED' : 'NOT_CONNECTED' },
     token_encryption: { status: configured.crypto ? 'CONNECTED' : 'NOT_CONNECTED', detail: configured.crypto ? undefined : 'TOKEN_ENC_KEY must be 64 hex chars' },
-    gemini: { status: configured.gemini ? 'CONNECTED' : 'NOT_CONNECTED' },
+    ai_text: { status: configured.text ? 'CONNECTED' : 'NOT_CONNECTED', detail: configured.claude ? `Claude (${config.CLAUDE_MODEL})` : configured.gemini ? `Gemini (${config.GEMINI_MODEL})` : 'Set ANTHROPIC_API_KEY or GEMINI_API_KEY' },
+    gemini_images_video: { status: configured.gemini ? 'CONNECTED' : 'NOT_CONNECTED', detail: configured.gemini ? undefined : 'Images and video need GEMINI_API_KEY (Claude cannot generate them)' },
     whatsapp: { status: configured.whatsapp ? 'CONNECTED' : 'NOT_CONNECTED', detail: configured.whatsapp ? undefined : 'Set WHATSAPP_TOKEN and WHATSAPP_PHONE_ID' },
     rank_provider: { status: configured.maps ? 'CONNECTED' : 'NOT_CONNECTED', detail: configured.maps ? undefined : 'Set GOOGLE_MAPS_API_KEY (Places API New)' },
   };

@@ -12,6 +12,9 @@ const schema = z.object({
   TOKEN_ENC_KEY: z.string().optional(),
   OAUTH_STATE_SECRET: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  CLAUDE_MODEL: z.string().default('claude-sonnet-5-5'),
+  AI_TEXT_PROVIDER: z.enum(['auto', 'claude', 'gemini']).default('auto'),
   GEMINI_MODEL: z.string().default('gemini-3.8-flash'),
   GEMINI_IMAGE_MODEL: z.string().default('gemini-3.1-flash-image'),
   GEMINI_VIDEO_MODEL: z.string().default('veo-3.0-fast-generate-001'),
@@ -31,6 +34,9 @@ export const configured = {
   google: !!(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET),
   crypto: !!(config.TOKEN_ENC_KEY && /^[0-9a-f]{64}$/i.test(config.TOKEN_ENC_KEY)),
   gemini: !!config.GEMINI_API_KEY,
+  claude: !!config.ANTHROPIC_API_KEY,
+  /** any provider able to write text (AI Mode, replies, audits, captions) */
+  text: !!(config.GEMINI_API_KEY || config.ANTHROPIC_API_KEY),
   maps: !!config.GOOGLE_MAPS_API_KEY,
   whatsapp: !!(config.WHATSAPP_TOKEN && config.WHATSAPP_PHONE_ID),
 };
