@@ -14,7 +14,11 @@ const schema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   CLAUDE_MODEL: z.string().default('claude-sonnet-5-5'),
-  AI_TEXT_PROVIDER: z.enum(['auto', 'claude', 'gemini']).default('auto'),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
+  OPENAI_IMAGE_MODEL: z.string().default('gpt-image-1'),
+  AI_TEXT_PROVIDER: z.enum(['auto', 'openai', 'claude', 'gemini']).default('auto'),
+  AI_IMAGE_PROVIDER: z.enum(['auto', 'openai', 'gemini']).default('auto'),
   GEMINI_MODEL: z.string().default('gemini-3.8-flash'),
   GEMINI_IMAGE_MODEL: z.string().default('gemini-3.1-flash-image'),
   GEMINI_VIDEO_MODEL: z.string().default('veo-3.0-fast-generate-001'),
@@ -35,8 +39,11 @@ export const configured = {
   crypto: !!(config.TOKEN_ENC_KEY && /^[0-9a-f]{64}$/i.test(config.TOKEN_ENC_KEY)),
   gemini: !!config.GEMINI_API_KEY,
   claude: !!config.ANTHROPIC_API_KEY,
+  openai: !!config.OPENAI_API_KEY,
   /** any provider able to write text (AI Mode, replies, audits, captions) */
-  text: !!(config.GEMINI_API_KEY || config.ANTHROPIC_API_KEY),
+  text: !!(config.GEMINI_API_KEY || config.ANTHROPIC_API_KEY || config.OPENAI_API_KEY),
+  /** any provider able to make images */
+  image: !!(config.GEMINI_API_KEY || config.OPENAI_API_KEY),
   maps: !!config.GOOGLE_MAPS_API_KEY,
   whatsapp: !!(config.WHATSAPP_TOKEN && config.WHATSAPP_PHONE_ID),
 };

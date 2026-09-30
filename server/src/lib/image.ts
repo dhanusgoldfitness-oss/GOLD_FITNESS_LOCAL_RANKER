@@ -40,8 +40,35 @@ async function discoverImageModels(): Promise<string[]> {
   } catch { return []; }
 }
 
+async function openaiImage(prompt: string): Promise<{ data: string; mime: string }> {
+  let r: Response;
+  try {
+    r = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${config.OPENAI_API_KEY}` },
+      body: JSON.stringify({ model: config.OPENAI_IMAGE_MODEL, prompt, size: '1024x1024', n: 1 }),
+    });
+  } catch { throw new ApiError(503, 'OFFLINE', 'Could not reach OpenAI.'); }
+  if (!r.ok) {
+    const why = await reason(r);
+    console.error('[openai image]', r.status, why);
+    if (r.status === 401) throw new ApiError(502, 'UPSTREAM', 'OpenAI rejected the API key (OPENAI_API_KEY).');
+    if (r.status === 429) throw new ApiError(429, 'RATE_LIMITED', `OpenAI quota or rate limit reached. ${why} Add credit at platform.openai.com → Billing.`.trim());
+    throw new ApiError(502, 'API_PENDING' as any, `OpenAI image generation failed with ${config.OPENAI_IMAGE_MODEL} (${r.status}). ${why} (gpt-image-1 may need organization verification in OpenAI settings.)`.trim());
+  }
+  const j: any = await r.json().catch(() => null);
+  const b64 = j?.data?.[0]?.b64_json;
+  if (!b64) throw new ApiError(502, 'UPSTREAM', 'OpenAI returned no image.');
+  return { data: b64, mime: 'image/png' };
+}
+
 /** Tries the classic generateContent call, then the newer Interactions API. Google's real error is surfaced. */
 export async function generateImage(prompt: string): Promise<{ data: string; mime: string }> {
+  const pv = config.AI_IMAGE_PROVIDER;
+  if (pv === 'openai' || (pv === 'auto' && configured.openai)) {
+    if (!configured.openai) throw new ApiError(503, 'NOT_CONNECTED', 'OPENAI_API_KEY is not set on the server.');
+    return openaiImage(prompt);
+  }
   if (!configured.gemini) throw new ApiError(503, 'NOT_CONNECTED', 'Gemini API key is not configured on the server.');
   const attempts: { name: string; run: () => Promise<Response> }[] = [
     { name: 'generateContent', run: () => post(`${GL}/models/${config.GEMINI_IMAGE_MODEL}:generateContent`, { contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['IMAGE'] } }) },

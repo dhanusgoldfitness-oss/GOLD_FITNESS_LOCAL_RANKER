@@ -331,7 +331,7 @@ growth.delete('/reports/:id', wrap(async (req, res) => {
 // ================= AI images (phase 14) =================
 growth.post('/ai-images', validate(z.object({ prompt: z.string().trim().min(3).max(600), location_id: z.string().uuid().optional() })), wrap(async (req, res) => {
   const uid = req.user!.id;
-  if (!configured.gemini) throw new ApiError(503, 'NOT_CONNECTED', 'Gemini API key is not configured on the server.');
+  if (!configured.image) throw new ApiError(503, 'NOT_CONNECTED', 'No image provider is configured. Set OPENAI_API_KEY or GEMINI_API_KEY on the server.');
   if (req.body.location_id) await ownLocation(uid, req.body.location_id);
   const settle = await spendCredit(uid, 'ai_image', 1);
   try {

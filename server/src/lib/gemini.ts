@@ -32,15 +32,48 @@ async function claude(prompt: string, opts: GenOptions): Promise<string> {
   return text;
 }
 
-/** Text generation. Uses Claude when ANTHROPIC_API_KEY is set (unless AI_TEXT_PROVIDER=gemini), otherwise Gemini. */
+/** OpenAI Chat Completions, backend only. */
+async function openai(prompt: string, opts: GenOptions): Promise<string> {
+  const call = () => fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${config.OPENAI_API_KEY}` },
+    body: JSON.stringify({
+      model: config.OPENAI_MODEL, temperature: opts.temperature ?? 0.6,
+      ...(opts.json ? { response_format: { type: 'json_object' } } : {}),
+      messages: [
+        ...(opts.json ? [{ role: 'system', content: 'Respond with a single valid JSON object only.' }] : []),
+        { role: 'user', content: prompt },
+      ],
+    }),
+  });
+  let r: Response;
+  try {
+    r = await call();
+    if (r.status === 429) { await new Promise((ok) => setTimeout(ok, 4000)); r = await call(); }
+  } catch { throw new ApiError(503, 'OFFLINE', 'Could not reach OpenAI.'); }
+  if (r.status === 401) throw new ApiError(502, 'UPSTREAM', 'OpenAI rejected the API key (OPENAI_API_KEY).');
+  if (!r.ok) {
+    let why = ''; try { const j: any = await r.json(); why = String(j?.error?.message ?? '').slice(0, 220); } catch { /* ignore */ }
+    console.error('[openai]', r.status, why);
+    if (r.status === 429) throw new ApiError(429, 'RATE_LIMITED', `OpenAI quota or rate limit reached. ${why} Add credit at platform.openai.com → Billing.`.trim());
+    throw new ApiError(502, 'UPSTREAM', `OpenAI error (${r.status}) for model ${config.OPENAI_MODEL}. ${why}`.trim());
+  }
+  const j: any = await r.json();
+  const text = j?.choices?.[0]?.message?.content ?? '';
+  if (!text) throw new ApiError(502, 'UPSTREAM', 'OpenAI returned an empty response.');
+  return text;
+}
+
+/** Text generation. AI_TEXT_PROVIDER=auto picks OpenAI, then Claude, then Gemini — whichever key is set. */
 export async function gemini(prompt: string, opts: GenOptions = {}): Promise<string> {
-  const useClaude = configured.claude && (config.AI_TEXT_PROVIDER === 'claude' || (config.AI_TEXT_PROVIDER === 'auto'));
-  if (useClaude) return claude(prompt, opts);
+  const p = config.AI_TEXT_PROVIDER;
+  if (p === 'openai' || (p === 'auto' && configured.openai)) { if (!configured.openai) throw new ApiError(503, 'NOT_CONNECTED', 'OPENAI_API_KEY is not set on the server.'); return openai(prompt, opts); }
+  if (p === 'claude' || (p === 'auto' && configured.claude)) { if (!configured.claude) throw new ApiError(503, 'NOT_CONNECTED', 'ANTHROPIC_API_KEY is not set on the server.'); return claude(prompt, opts); }
   return geminiText(prompt, opts);
 }
 
 async function geminiText(prompt: string, opts: GenOptions = {}): Promise<string> {
-  if (!configured.gemini) throw new ApiError(503, 'NOT_CONNECTED', 'No AI key is configured. Set ANTHROPIC_API_KEY (Claude) or GEMINI_API_KEY on the server.');
+  if (!configured.gemini) throw new ApiError(503, 'NOT_CONNECTED', 'No AI key is configured. Set OPENAI_API_KEY, ANTHROPIC_API_KEY or GEMINI_API_KEY on the server.');
   const call = () => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${config.GEMINI_MODEL}:generateContent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': config.GEMINI_API_KEY! },
