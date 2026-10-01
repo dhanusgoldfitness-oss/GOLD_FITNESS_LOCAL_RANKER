@@ -65,12 +65,33 @@ async function openai(prompt: string, opts: GenOptions): Promise<string> {
   return text;
 }
 
-/** Text generation. AI_TEXT_PROVIDER=auto picks OpenAI, then Claude, then Gemini — whichever key is set. */
+/** Text generation. AI_TEXT_PROVIDER=auto tries OpenAI, then Claude, then Gemini (whichever keys are set).
+ *  If the chosen provider is temporarily down (5xx / overloaded / unreachable / quota), the next configured one is tried. */
 export async function gemini(prompt: string, opts: GenOptions = {}): Promise<string> {
   const p = config.AI_TEXT_PROVIDER;
-  if (p === 'openai' || (p === 'auto' && configured.openai)) { if (!configured.openai) throw new ApiError(503, 'NOT_CONNECTED', 'OPENAI_API_KEY is not set on the server.'); return openai(prompt, opts); }
-  if (p === 'claude' || (p === 'auto' && configured.claude)) { if (!configured.claude) throw new ApiError(503, 'NOT_CONNECTED', 'ANTHROPIC_API_KEY is not set on the server.'); return claude(prompt, opts); }
-  return geminiText(prompt, opts);
+  const all: [string, boolean, () => Promise<string>][] = [
+    ['openai', configured.openai, () => openai(prompt, opts)],
+    ['claude', configured.claude, () => claude(prompt, opts)],
+    ['gemini', configured.gemini, () => geminiText(prompt, opts)],
+  ];
+  if (p !== 'auto') {
+    const one = all.find((x) => x[0] === p)!;
+    if (!one[1]) throw new ApiError(503, 'NOT_CONNECTED', `AI_TEXT_PROVIDER is "${p}" but its API key is not set on the server.`);
+    return one[2]();
+  }
+  const usable = all.filter((x) => x[1]);
+  if (!usable.length) throw new ApiError(503, 'NOT_CONNECTED', 'No AI key is configured. Set OPENAI_API_KEY, ANTHROPIC_API_KEY or GEMINI_API_KEY on the server.');
+  let last: unknown;
+  for (const [name, , run] of usable) {
+    try { return await run(); }
+    catch (e) {
+      last = e;
+      const transient = e instanceof ApiError && (e.status >= 500 || e.code === 'RATE_LIMITED' || e.code === 'OFFLINE' || e.code === 'UPSTREAM');
+      console.error(`[ai ${name}] failed${transient ? ', trying next provider' : ''}:`, e instanceof Error ? e.message : e);
+      if (!transient) throw e;
+    }
+  }
+  throw last;
 }
 
 async function geminiText(prompt: string, opts: GenOptions = {}): Promise<string> {
@@ -86,7 +107,7 @@ async function geminiText(prompt: string, opts: GenOptions = {}): Promise<string
   let r: Response;
   try {
     r = await call();
-    if (r.status === 429) { await new Promise((ok) => setTimeout(ok, 4000)); r = await call(); }   // one short retry for per-minute limits
+    if (r.status === 429 || r.status === 503) { await new Promise((ok) => setTimeout(ok, 4000)); r = await call(); }   // one short retry for per-minute limits / momentary overload
   } catch { throw new ApiError(503, 'OFFLINE', 'Could not reach Gemini.'); }
   if (r.status === 429) {
     let why = '';
@@ -95,6 +116,7 @@ async function geminiText(prompt: string, opts: GenOptions = {}): Promise<string
     throw new ApiError(429, 'RATE_LIMITED', `Gemini quota exceeded for model ${config.GEMINI_MODEL}. ${why ? why + ' ' : ''}Wait a minute, enable billing in Google AI Studio, or set GEMINI_MODEL to a model with quota.`);
   }
   if (r.status === 401 || r.status === 403) throw new ApiError(502, 'UPSTREAM', 'Gemini rejected the API key.');
+  if (r.status === 503) throw new ApiError(503, 'UPSTREAM', `Gemini is overloaded right now (503) for model ${config.GEMINI_MODEL}. Try again in a minute, or set GEMINI_MODEL to another model.`);
   if (!r.ok) throw new ApiError(502, 'UPSTREAM', `Gemini error (${r.status}).`);
   const j: any = await r.json();
   const text = j?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ?? '';
