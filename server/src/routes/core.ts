@@ -130,8 +130,9 @@ core.get('/auth/google/callback', wrap(async (req, res) => {
     await audit(userId, 'google.connect', 'google_connections', userId);
     return back('google=connected');
   } catch (e) {
-    console.error('[oauth callback]', e instanceof Error ? e.message : e);
-    return back('google=error');
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[oauth callback]', msg);
+    return back(`google=error&why=${encodeURIComponent(e instanceof ApiError ? msg.slice(0, 200) : 'Server error while saving the connection. Check TOKEN_ENC_KEY (64 hex characters) and the Supabase settings.')}`);
   }
 }));
 

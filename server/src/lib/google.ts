@@ -25,6 +25,9 @@ async function tokenRequest(params: Record<string, string>) {
   const text = await r.text();
   if (!r.ok) {
     if (text.includes('invalid_grant')) throw new ApiError(401, 'REAUTH_REQUIRED', 'Google authorization was revoked or expired. Reconnect.');
+    let g = ''; try { const j = JSON.parse(text); g = [j.error, j.error_description].filter(Boolean).join(': '); } catch { /* not json */ }
+    if (/redirect_uri_mismatch/.test(g)) throw new ApiError(502, 'UPSTREAM', 'Google says the redirect URI does not match. Add GOOGLE_REDIRECT_URI exactly under Authorized redirect URIs in Google Cloud.');
+    if (/invalid_client|unauthorized_client/.test(g)) throw new ApiError(502, 'UPSTREAM', 'Google rejected the OAuth client. Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET on the server.');
     throw fromUpstream(r.status, text, 'Google token exchange');
   }
   return JSON.parse(text) as { access_token: string; refresh_token?: string; expires_in: number; scope?: string; id_token?: string };

@@ -21,7 +21,7 @@ export default function GoogleBusiness() {
 
   useEffect(() => {
     const g = sp.get('google');
-    if (g && MSG[g]) { toast(MSG[g][0] as 'ok' | 'err', MSG[g][1]); st.reload(); locs.reload(); setSp({}, { replace: true }); }
+    if (g && MSG[g]) { const why = sp.get('why'); toast(MSG[g][0] as 'ok' | 'err', why ? `${MSG[g][1]} ${why.slice(0, 220)}` : MSG[g][1]); st.reload(); locs.reload(); setSp({}, { replace: true }); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
