@@ -15,6 +15,7 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   CLAUDE_MODEL: z.string().default('claude-sonnet-5-5'),
   OPENAI_API_KEY: z.string().optional(),
+  OPENAI_BASE_URL: z.string().default('https://api.openai.com/v1'),
   OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
   OPENAI_IMAGE_MODEL: z.string().default('gpt-image-1'),
   AI_TEXT_PROVIDER: z.enum(['auto', 'openai', 'claude', 'gemini']).default('auto'),
@@ -43,7 +44,7 @@ export const configured = {
   /** any provider able to write text (AI Mode, replies, audits, captions) */
   text: !!(config.GEMINI_API_KEY || config.ANTHROPIC_API_KEY || config.OPENAI_API_KEY),
   /** any provider able to make images */
-  image: !!(config.GEMINI_API_KEY || config.OPENAI_API_KEY),
+  image: !!(config.GEMINI_API_KEY || (config.OPENAI_API_KEY && /^https:\/\/api\.openai\.com\//.test(config.OPENAI_BASE_URL))),
   maps: !!config.GOOGLE_MAPS_API_KEY,
   whatsapp: !!(config.WHATSAPP_TOKEN && config.WHATSAPP_PHONE_ID),
 };

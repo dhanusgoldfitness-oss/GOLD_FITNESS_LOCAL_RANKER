@@ -65,8 +65,9 @@ async function openaiImage(prompt: string): Promise<{ data: string; mime: string
 /** Tries the classic generateContent call, then the newer Interactions API. Google's real error is surfaced. */
 export async function generateImage(prompt: string): Promise<{ data: string; mime: string }> {
   const pv = config.AI_IMAGE_PROVIDER;
-  if (pv === 'openai' || (pv === 'auto' && configured.openai)) {
-    if (!configured.openai) throw new ApiError(503, 'NOT_CONNECTED', 'OPENAI_API_KEY is not set on the server.');
+  const realOpenAI = configured.openai && /^https:\/\/api\.openai\.com\//.test(config.OPENAI_BASE_URL);
+  if (pv === 'openai' || (pv === 'auto' && realOpenAI)) {
+    if (!realOpenAI) throw new ApiError(503, 'NOT_CONNECTED', 'OpenAI images need OPENAI_API_KEY on the official OpenAI endpoint (OPENAI_BASE_URL is set to another host).');
     return openaiImage(prompt);
   }
   if (!configured.gemini) throw new ApiError(503, 'NOT_CONNECTED', 'Gemini API key is not configured on the server.');

@@ -34,14 +34,15 @@ async function claude(prompt: string, opts: GenOptions): Promise<string> {
 
 /** OpenAI Chat Completions, backend only. */
 async function openai(prompt: string, opts: GenOptions): Promise<string> {
-  const call = () => fetch('https://api.openai.com/v1/chat/completions', {
+  const call = () => fetch(`${config.OPENAI_BASE_URL.replace(/\/+$/, '')}/chat/completions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${config.OPENAI_API_KEY}` },
     body: JSON.stringify({
       model: config.OPENAI_MODEL, temperature: opts.temperature ?? 0.6,
-      ...(opts.json ? { response_format: { type: 'json_object' } } : {}),
+      ...(opts.json && /api\.openai\.com/.test(config.OPENAI_BASE_URL) ? { response_format: { type: 'json_object' } } : {}),
+      max_tokens: 4096,
       messages: [
-        ...(opts.json ? [{ role: 'system', content: 'Respond with a single valid JSON object only.' }] : []),
+        ...(opts.json ? [{ role: 'system', content: 'Respond with a single valid JSON value only. No markdown fences, no commentary.' }] : []),
         { role: 'user', content: prompt },
       ],
     }),
@@ -59,7 +60,7 @@ async function openai(prompt: string, opts: GenOptions): Promise<string> {
     throw new ApiError(502, 'UPSTREAM', `OpenAI error (${r.status}) for model ${config.OPENAI_MODEL}. ${why}`.trim());
   }
   const j: any = await r.json();
-  const text = j?.choices?.[0]?.message?.content ?? '';
+  const text = String(j?.choices?.[0]?.message?.content ?? '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   if (!text) throw new ApiError(502, 'UPSTREAM', 'OpenAI returned an empty response.');
   return text;
 }
