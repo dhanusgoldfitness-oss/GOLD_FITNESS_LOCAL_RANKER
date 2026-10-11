@@ -17,6 +17,8 @@ const schema = z.object({
   PERPLEXITY_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_BASE_URL: z.string().default('https://api.openai.com/v1'),
+  /** JSON object merged into every OpenAI-compatible chat request, e.g. {"chat_template_kwargs":{"enable_thinking":false}} */
+  OPENAI_EXTRA_BODY: z.string().optional(),
   OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
   OPENAI_IMAGE_MODEL: z.string().default('gpt-image-1'),
   AI_TEXT_PROVIDER: z.enum(['auto', 'openai', 'claude', 'gemini']).default('auto'),

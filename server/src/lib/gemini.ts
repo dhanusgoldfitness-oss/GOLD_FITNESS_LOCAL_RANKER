@@ -33,11 +33,18 @@ async function claude(prompt: string, opts: GenOptions): Promise<string> {
 }
 
 /** OpenAI Chat Completions, backend only. */
+function extraBody(): Record<string, unknown> {
+  if (!config.OPENAI_EXTRA_BODY) return {};
+  try { const j = JSON.parse(config.OPENAI_EXTRA_BODY); return j && typeof j === 'object' && !Array.isArray(j) ? j : {}; }
+  catch { console.error('[openai] OPENAI_EXTRA_BODY is not valid JSON; ignoring it'); return {}; }
+}
+
 async function openai(prompt: string, opts: GenOptions): Promise<string> {
   const call = () => fetch(`${config.OPENAI_BASE_URL.replace(/\/+$/, '')}/chat/completions`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${config.OPENAI_API_KEY}` },
     body: JSON.stringify({
+      ...extraBody(),
       model: config.OPENAI_MODEL, temperature: opts.temperature ?? 0.6,
       ...(opts.json && /api\.openai\.com/.test(config.OPENAI_BASE_URL) ? { response_format: { type: 'json_object' } } : {}),
       max_tokens: 4096,
