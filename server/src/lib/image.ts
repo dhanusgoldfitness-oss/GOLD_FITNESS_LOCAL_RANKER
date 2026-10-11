@@ -63,13 +63,7 @@ async function openaiImage(prompt: string): Promise<{ data: string; mime: string
 }
 
 /** Tries the classic generateContent call, then the newer Interactions API. Google's real error is surfaced. */
-export async function generateImage(prompt: string): Promise<{ data: string; mime: string }> {
-  const pv = config.AI_IMAGE_PROVIDER;
-  const realOpenAI = configured.openai && /^https:\/\/api\.openai\.com\//.test(config.OPENAI_BASE_URL);
-  if (pv === 'openai' || (pv === 'auto' && realOpenAI)) {
-    if (!realOpenAI) throw new ApiError(503, 'NOT_CONNECTED', 'OpenAI images need OPENAI_API_KEY on the official OpenAI endpoint (OPENAI_BASE_URL is set to another host).');
-    return openaiImage(prompt);
-  }
+async function geminiImage(prompt: string): Promise<{ data: string; mime: string }> {
   if (!configured.gemini) throw new ApiError(503, 'NOT_CONNECTED', 'Gemini API key is not configured on the server.');
   const attempts: { name: string; run: () => Promise<Response> }[] = [
     { name: 'generateContent', run: () => post(`${GL}/models/${config.GEMINI_IMAGE_MODEL}:generateContent`, { contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['IMAGE'] } }) },
@@ -99,4 +93,62 @@ export async function generateImage(prompt: string): Promise<{ data: string; mim
   }
   const hint = found.length ? ` Models your key lists: ${found.slice(0, 5).join(', ')}.` : ' Your key lists no image-capable models (enable billing in Google AI Studio).';
   throw new ApiError(502, 'API_PENDING' as any, `Image generation failed with ${config.GEMINI_IMAGE_MODEL} (${lastStatus}). ${lastWhy || 'No reason given by Google.'}${hint}`.trim());
+}
+
+/** Ideogram 3.0 (POST /v1/ideogram-v3/generate, multipart form, `Api-Key` header). The returned URL expires, so the image is downloaded now. */
+async function ideogramImage(prompt: string): Promise<{ data: string; mime: string }> {
+  const form = new FormData();
+  form.set('prompt', prompt);
+  form.set('num_images', '1');
+  form.set('aspect_ratio', '1x1');
+  form.set('rendering_speed', config.IDEOGRAM_RENDERING_SPEED);
+  let r: Response;
+  try {
+    r = await fetch('https://api.ideogram.ai/v1/ideogram-v3/generate', { method: 'POST', headers: { 'Api-Key': config.IDEOGRAM_API_KEY! }, body: form, signal: AbortSignal.timeout(60_000) });
+  } catch { throw new ApiError(503, 'OFFLINE', 'Could not reach Ideogram.'); }
+  if (!r.ok) {
+    const why = await reason(r);
+    console.error('[ideogram]', r.status, why);
+    if (r.status === 401 || r.status === 403) throw new ApiError(502, 'UPSTREAM', 'Ideogram rejected the API key (IDEOGRAM_API_KEY).');
+    if (r.status === 429) throw new ApiError(429, 'RATE_LIMITED', 'Ideogram rate limit or credit balance reached. Check your Ideogram API billing.');
+    throw new ApiError(502, 'API_PENDING' as any, `Ideogram image generation failed (${r.status}). ${why}`.trim());
+  }
+  const j: any = await r.json().catch(() => null);
+  const item = j?.data?.[0];
+  if (!item?.url) throw new ApiError(502, 'UPSTREAM', 'Ideogram returned no image.');
+  if (item.is_image_safe === false) throw new ApiError(422 as any, 'VALIDATION', 'Ideogram flagged this image as unsafe. Rephrase the prompt.');
+  let img: Response;
+  try { img = await fetch(String(item.url), { signal: AbortSignal.timeout(30_000) }); } catch { throw new ApiError(503, 'OFFLINE', 'Could not download the Ideogram image.'); }
+  if (!img.ok) throw new ApiError(502, 'UPSTREAM', `Could not download the Ideogram image (${img.status}).`);
+  const mime = (img.headers.get('content-type') ?? 'image/png').split(';')[0];
+  return { data: Buffer.from(await img.arrayBuffer()).toString('base64'), mime };
+}
+
+/** Image generation. AI_IMAGE_PROVIDER=auto tries Ideogram, then OpenAI, then Gemini (whichever keys are set), failing over on quota/outage. */
+export async function generateImage(prompt: string): Promise<{ data: string; mime: string }> {
+  const pv = config.AI_IMAGE_PROVIDER;
+  const realOpenAI = configured.openai && /^https:\/\/api\.openai\.com\//.test(config.OPENAI_BASE_URL);
+  const all: [string, boolean, () => Promise<{ data: string; mime: string }>][] = [
+    ['ideogram', configured.ideogram, () => ideogramImage(prompt)],
+    ['openai', realOpenAI, () => openaiImage(prompt)],
+    ['gemini', configured.gemini, () => geminiImage(prompt)],
+  ];
+  if (pv !== 'auto') {
+    const one = all.find((x) => x[0] === pv)!;
+    if (!one[1]) throw new ApiError(503, 'NOT_CONNECTED', pv === 'openai' ? 'OpenAI images need OPENAI_API_KEY on the official OpenAI endpoint (OPENAI_BASE_URL must not point to another host).' : `AI_IMAGE_PROVIDER is "${pv}" but its API key is not set on the server.`);
+    return one[2]();
+  }
+  const usable = all.filter((x) => x[1]);
+  if (!usable.length) throw new ApiError(503, 'NOT_CONNECTED', 'No image provider is configured. Set IDEOGRAM_API_KEY, OPENAI_API_KEY or GEMINI_API_KEY on the server.');
+  let last: unknown;
+  for (const [name, , run] of usable) {
+    try { return await run(); }
+    catch (e) {
+      last = e;
+      const transient = e instanceof ApiError && (e.status >= 500 || e.code === 'RATE_LIMITED' || e.code === 'OFFLINE' || e.code === 'UPSTREAM' || e.code === ('API_PENDING' as any));
+      console.error(`[image ${name}] failed${transient ? ', trying next provider' : ''}:`, e instanceof Error ? e.message : e);
+      if (!transient) throw e;
+    }
+  }
+  throw last;
 }

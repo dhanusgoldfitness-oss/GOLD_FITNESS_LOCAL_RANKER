@@ -20,7 +20,9 @@ const schema = z.object({
   OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
   OPENAI_IMAGE_MODEL: z.string().default('gpt-image-1'),
   AI_TEXT_PROVIDER: z.enum(['auto', 'openai', 'claude', 'gemini']).default('auto'),
-  AI_IMAGE_PROVIDER: z.enum(['auto', 'openai', 'gemini']).default('auto'),
+  AI_IMAGE_PROVIDER: z.enum(['auto', 'ideogram', 'openai', 'gemini']).default('auto'),
+  IDEOGRAM_API_KEY: z.string().optional(),
+  IDEOGRAM_RENDERING_SPEED: z.enum(['FLASH', 'TURBO', 'DEFAULT', 'QUALITY']).default('DEFAULT'),
   GEMINI_MODEL: z.string().default('gemini-3.8-flash'),
   GEMINI_IMAGE_MODEL: z.string().default('gemini-3.1-flash-image'),
   GEMINI_VIDEO_MODEL: z.string().default('veo-3.0-fast-generate-001'),
@@ -43,10 +45,11 @@ export const configured = {
   claude: !!config.ANTHROPIC_API_KEY,
   openai: !!config.OPENAI_API_KEY,
   perplexity: !!config.PERPLEXITY_API_KEY,
+  ideogram: !!config.IDEOGRAM_API_KEY,
   /** any provider able to write text (AI Mode, replies, audits, captions) */
   text: !!(config.GEMINI_API_KEY || config.ANTHROPIC_API_KEY || config.OPENAI_API_KEY),
   /** any provider able to make images */
-  image: !!(config.GEMINI_API_KEY || (config.OPENAI_API_KEY && /^https:\/\/api\.openai\.com\//.test(config.OPENAI_BASE_URL))),
+  image: !!(config.IDEOGRAM_API_KEY || config.GEMINI_API_KEY || (config.OPENAI_API_KEY && /^https:\/\/api\.openai\.com\//.test(config.OPENAI_BASE_URL))),
   maps: !!config.GOOGLE_MAPS_API_KEY,
   whatsapp: !!(config.WHATSAPP_TOKEN && config.WHATSAPP_PHONE_ID),
 };
