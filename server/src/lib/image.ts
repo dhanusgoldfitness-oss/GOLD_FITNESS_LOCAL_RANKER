@@ -110,7 +110,8 @@ async function ideogramImage(prompt: string): Promise<{ data: string; mime: stri
     const why = await reason(r);
     console.error('[ideogram]', r.status, why);
     if (r.status === 401 || r.status === 403) throw new ApiError(502, 'UPSTREAM', 'Ideogram rejected the API key (IDEOGRAM_API_KEY).');
-    if (r.status === 429) throw new ApiError(429, 'RATE_LIMITED', 'Ideogram rate limit or credit balance reached. Check your Ideogram API billing.');
+    if (r.status === 402) throw new ApiError(429, 'RATE_LIMITED', 'Ideogram has no credits. Add a payment method and credits at ideogram.ai (API section), then try again.');
+    if (r.status === 429) throw new ApiError(429, 'RATE_LIMITED', 'Ideogram rate limit reached. Try again shortly.');
     throw new ApiError(502, 'API_PENDING' as any, `Ideogram image generation failed (${r.status}). ${why}`.trim());
   }
   const j: any = await r.json().catch(() => null);
