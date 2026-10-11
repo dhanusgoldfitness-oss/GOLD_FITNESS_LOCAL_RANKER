@@ -14,6 +14,7 @@ const schema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
   CLAUDE_MODEL: z.string().default('claude-sonnet-5-5'),
+  PERPLEXITY_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_BASE_URL: z.string().default('https://api.openai.com/v1'),
   OPENAI_MODEL: z.string().default('gpt-4.1-mini'),
@@ -41,6 +42,7 @@ export const configured = {
   gemini: !!config.GEMINI_API_KEY,
   claude: !!config.ANTHROPIC_API_KEY,
   openai: !!config.OPENAI_API_KEY,
+  perplexity: !!config.PERPLEXITY_API_KEY,
   /** any provider able to write text (AI Mode, replies, audits, captions) */
   text: !!(config.GEMINI_API_KEY || config.ANTHROPIC_API_KEY || config.OPENAI_API_KEY),
   /** any provider able to make images */
