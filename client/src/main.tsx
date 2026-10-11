@@ -20,7 +20,6 @@ import RankChecker from './pages/RankChecker';
 import Competitors from './pages/Competitors';
 import Performance from './pages/Performance';
 import Reports from './pages/Reports';
-import AiImages from './pages/AiImages';
 import Leads from './pages/Leads';
 import Automations from './pages/Automations';
 import WhatsApp from './pages/WhatsApp';
@@ -69,7 +68,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/ai-mode" element={<AiMode />} />
               <Route path="/ai-video" element={<AiVideo />} />
               <Route path="/social" element={<Social />} />
-              <Route path="/ai-images" element={<AiImages />} />
+              <Route path="/ai-images" element={<Navigate to="/dashboard" replace />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/automations" element={<Automations />} />
               <Route path="/whatsapp" element={<WhatsApp />} />
