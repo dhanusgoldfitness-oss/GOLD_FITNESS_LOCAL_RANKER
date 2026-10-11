@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import './index.css';
 import { AuthProvider, useAuth } from './lib/auth';
 import { PageLoading, ToastProvider } from './components/ui';
@@ -86,6 +87,7 @@ createRoot(document.getElementById('root')!).render(
           </Routes>
         </AuthProvider>
       </ToastProvider>
+      <Analytics />
     </BrowserRouter>
   </StrictMode>,
 );
