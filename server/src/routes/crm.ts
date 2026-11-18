@@ -5,7 +5,7 @@ import { auth, requireRole, validate, wrap } from '../middleware/index.js';
 import { ApiError } from '../lib/errors.js';
 import { audit as auditLog, db } from '../lib/supabase.js';
 import { config, configured } from '../config.js';
-import { normalizePhone, sendText } from '../lib/whatsapp.js';
+import { normalizePhone, sendTemplate, sendText } from '../lib/whatsapp.js';
 import { fireEvent } from '../lib/automation.js';
 import { notify } from './core.js';
 
@@ -130,6 +130,56 @@ crm.get('/whatsapp/messages', wrap(async (req, res) => {
 }));
 crm.post('/whatsapp/send', validate(z.object({ to: z.string().min(8).max(20), message: z.string().trim().min(1).max(1000) })), wrap(async (req, res) => {
   res.json(await sendText(req.user!.id, req.body.to, req.body.message));
+}));
+
+// ----- WhatsApp inbox: conversations, threads, templates -----
+crm.get('/whatsapp/conversations', wrap(async (req, res) => {
+  const uid = req.user!.id;
+  const { data } = await db().from('whatsapp_messages').select('direction,from_number,to_number,body,status,read_at,created_at').eq('user_id', uid).order('created_at', { ascending: false }).limit(1500);
+  const map = new Map<string, { number: string; last_body: string; last_at: string; last_direction: string; unread: number; last_inbound_at: string | null }>();
+  for (const m of data ?? []) {
+    const num = (m.direction === 'in' ? m.from_number : m.to_number) as string | null;
+    if (!num) continue;
+    let c = map.get(num);
+    if (!c) { c = { number: num, last_body: String(m.body ?? ''), last_at: m.created_at, last_direction: m.direction, unread: 0, last_inbound_at: null }; map.set(num, c); }
+    if (m.direction === 'in') { if (!c.last_inbound_at) c.last_inbound_at = m.created_at; if (!m.read_at) c.unread++; }
+  }
+  const { data: leads } = await db().from('leads').select('name,phone').eq('user_id', uid).not('phone', 'is', null);
+  const names = new Map((leads ?? []).map((l) => [l.phone as string, l.name as string]));
+  const conversations = [...map.values()].map((c) => ({ ...c, name: names.get(c.number) ?? null }));
+  res.json({ conversations, unread: conversations.reduce((n, c) => n + c.unread, 0) });
+}));
+crm.get('/whatsapp/thread/:number', wrap(async (req, res) => {
+  const uid = req.user!.id;
+  const num = normalizePhone(String(req.params.number));
+  if (!num) throw new ApiError(400, 'VALIDATION', 'Invalid phone number.');
+  const { data } = await db().from('whatsapp_messages').select('id,direction,body,status,error,created_at').eq('user_id', uid).or(`from_number.eq.${num},to_number.eq.${num}`).order('created_at', { ascending: false }).limit(300);
+  const messages = (data ?? []).reverse();
+  await db().from('whatsapp_messages').update({ read_at: new Date().toISOString() }).eq('user_id', uid).eq('from_number', num).eq('direction', 'in').is('read_at', null);
+  const lastIn = [...messages].reverse().find((m) => m.direction === 'in')?.created_at ?? null;
+  const windowEnds = lastIn ? new Date(new Date(lastIn).getTime() + 24 * 3600_000) : null;
+  const { data: lead } = await db().from('leads').select('id,name').eq('user_id', uid).eq('phone', num).limit(1).maybeSingle();
+  res.json({ number: num, name: lead?.name ?? null, lead_id: lead?.id ?? null, messages, window_open: !!windowEnds && windowEnds.getTime() > Date.now(), window_ends_at: windowEnds?.toISOString() ?? null });
+}));
+crm.post('/whatsapp/send-template', validate(z.object({
+  to: z.string().min(8).max(20), name: z.string().trim().min(1).max(200).regex(/^[a-z0-9_]+$/), language: z.string().trim().min(2).max(10).default('en_US'),
+  params: z.array(z.string().trim().min(1).max(1000)).max(10).default([]),
+}).strict()), wrap(async (req, res) => {
+  res.json(await sendTemplate(req.user!.id, req.body.to, req.body.name, req.body.language, req.body.params));
+}));
+crm.get('/whatsapp/templates', wrap(async (_req, res) => {
+  if (!configured.whatsapp || !config.WHATSAPP_WABA_ID) return void res.json({ templates: [], note: config.WHATSAPP_WABA_ID ? 'WhatsApp is not connected.' : 'Add WHATSAPP_WABA_ID on the server to list your approved templates here, or type a template name by hand.' });
+  let r: Response;
+  try { r = await fetch(`https://graph.facebook.com/v20.0/${config.WHATSAPP_WABA_ID}/message_templates?status=APPROVED&limit=100&fields=name,language,category,components`, { headers: { authorization: `Bearer ${config.WHATSAPP_TOKEN}` } }); }
+  catch { throw new ApiError(503, 'OFFLINE', 'Could not reach WhatsApp.'); }
+  const j: any = await r.json().catch(() => ({}));
+  if (!r.ok) return void res.json({ templates: [], note: `Could not load templates: ${String(j?.error?.message ?? r.status).slice(0, 160)}` });
+  const templates = (j.data ?? []).map((t: any) => {
+    const body = (t.components ?? []).find((c: any) => c.type === 'BODY')?.text ?? '';
+    const vars = [...String(body).matchAll(/\{\{(\d+)\}\}/g)].map((m) => Number(m[1]));
+    return { name: t.name, language: t.language, category: t.category, body, params: vars.length ? Math.max(...vars) : 0 };
+  });
+  res.json({ templates, note: null });
 }));
 
 // ===== automation rules (phase 18) =====

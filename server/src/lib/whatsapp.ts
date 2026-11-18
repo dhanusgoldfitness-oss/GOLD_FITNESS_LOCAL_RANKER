@@ -9,12 +9,12 @@ export function normalizePhone(p: string): string | null {
   return d.length >= 11 && d.length <= 15 ? d : null;
 }
 
-/** Send a WhatsApp text via Cloud API. Free-form text only delivers inside the 24h customer-service window;
- *  outside it Meta requires an approved template (use sendTemplate). Provider errors are stored, never hidden. */
-export async function sendText(userId: string, to: string, body: string) {
+/** Shared Cloud API sender. Every attempt is logged in whatsapp_messages; provider errors are stored, never hidden.
+ *  Free-form text only delivers inside the 24h customer-service window; outside it Meta requires an approved template. */
+async function deliver(userId: string, to: string, payload: Record<string, unknown>, logBody: string) {
   const num = normalizePhone(to);
   if (!num) throw new ApiError(400, 'VALIDATION', 'Invalid phone number.');
-  const { data: row } = await db().from('whatsapp_messages').insert({ user_id: userId, direction: 'out', to_number: num, body, status: 'queued' }).select().single();
+  const { data: row } = await db().from('whatsapp_messages').insert({ user_id: userId, direction: 'out', to_number: num, body: logBody, status: 'queued' }).select().single();
   if (!configured.whatsapp) {
     await db().from('whatsapp_messages').update({ status: 'failed', error: 'NOT_CONNECTED: WhatsApp Cloud API credentials missing' }).eq('id', row!.id);
     throw new ApiError(503, 'NOT_CONNECTED', 'WhatsApp Cloud API is not configured on the server.');
@@ -23,7 +23,7 @@ export async function sendText(userId: string, to: string, body: string) {
   try {
     r = await fetch(`https://graph.facebook.com/v20.0/${config.WHATSAPP_PHONE_ID}/messages`, {
       method: 'POST', headers: { authorization: `Bearer ${config.WHATSAPP_TOKEN}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ messaging_product: 'whatsapp', to: num, type: 'text', text: { body: body.slice(0, 4000) } }),
+      body: JSON.stringify({ messaging_product: 'whatsapp', to: num, ...payload }),
     });
   } catch {
     await db().from('whatsapp_messages').update({ status: 'failed', error: 'OFFLINE' }).eq('id', row!.id);
@@ -31,10 +31,23 @@ export async function sendText(userId: string, to: string, body: string) {
   }
   const j: any = await r.json().catch(() => ({}));
   if (!r.ok) {
-    const msg = j?.error?.message ?? `HTTP ${r.status}`;
+    const raw = String(j?.error?.message ?? `HTTP ${r.status}`);
+    const outside = j?.error?.code === 131047 || /re-engage|24 hour/i.test(raw);
+    const msg = outside ? 'Outside the 24-hour reply window. Send an approved template instead.' : raw;
     await db().from('whatsapp_messages').update({ status: 'failed', error: msg }).eq('id', row!.id);
+    if (outside) throw new ApiError(400, 'VALIDATION', msg);
     throw new ApiError(r.status === 401 ? 401 : 502, r.status === 401 ? 'REAUTH_REQUIRED' : 'UPSTREAM', `WhatsApp: ${msg}`);
   }
   await db().from('whatsapp_messages').update({ status: 'sent', provider_id: j?.messages?.[0]?.id ?? null }).eq('id', row!.id);
   return { id: row!.id };
 }
+
+export const sendText = (userId: string, to: string, body: string) =>
+  deliver(userId, to, { type: 'text', text: { body: body.slice(0, 4000) } }, body);
+
+/** Approved template; body placeholders {{1}}, {{2}}... are filled from `params` in order. Works outside the 24h window. */
+export const sendTemplate = (userId: string, to: string, name: string, language: string, params: string[] = []) =>
+  deliver(userId, to, {
+    type: 'template',
+    template: { name, language: { code: language }, ...(params.length ? { components: [{ type: 'body', parameters: params.map((text) => ({ type: 'text', text: text.slice(0, 1000) })) }] } : {}) },
+  }, `[Template: ${name}]${params.length ? ' ' + params.join(' | ') : ''}`);

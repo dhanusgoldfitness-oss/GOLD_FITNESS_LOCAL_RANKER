@@ -36,6 +36,8 @@ const schema = z.object({
   GOOGLE_MAPS_API_KEY: z.string().optional(),
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_ID: z.string().optional(),
+  /** WhatsApp Business Account id; optional, lets the inbox list your approved templates. */
+  WHATSAPP_WABA_ID: z.string().optional(),
   WHATSAPP_VERIFY_TOKEN: z.string().optional(),
   WHATSAPP_APP_SECRET: z.string().optional(),
   SCHEDULER_ENABLED: z.string().default('true'),
