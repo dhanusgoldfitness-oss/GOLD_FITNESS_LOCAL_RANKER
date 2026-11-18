@@ -98,3 +98,7 @@ export const deleteReply = (u: string, account: string, location: string, review
   gsend(u, 'DELETE', `${V4}/${account}/${location}/reviews/${reviewId}/reply`, undefined, 'Delete reply');
 export const patchLocation = (u: string, locationName: string, updateMask: string, body: unknown) =>
   gsend(u, 'PATCH', `${INFO}/${locationName}?updateMask=${updateMask}`, body, 'Update location');
+/** Find Google category resource names (categories/gcid:...) whose display name matches. */
+export const searchCategories = (u: string, name: string, regionCode: string) =>
+  gget<{ categories?: { name: string; displayName: string }[] }>(
+    u, `${INFO}/categories?regionCode=${encodeURIComponent(regionCode)}&languageCode=en&view=BASIC&pageSize=10&filter=${encodeURIComponent(`displayName=${name}`)}`, 'Search categories');

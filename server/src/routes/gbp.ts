@@ -190,19 +190,57 @@ gbp.patch('/ai/suggestions/:id', validate(z.object({ status: z.enum(['approved',
   res.json({ suggestion: data });
 }));
 
-// Only APPROVED suggestions can be written to Google — description only in this release.
+// Only APPROVED suggestions can be written to Google. Description replaces the text; categories and services are ADDED to what the profile already has.
 gbp.post('/ai/suggestions/:id/apply', wrap(async (req, res) => {
   const uid = req.user!.id;
   const { data: s } = await db().from('ai_suggestions').select('*').eq('id', req.params.id).eq('user_id', uid).maybeSingle();
   if (!s) throw new ApiError(404, 'NOT_FOUND', 'Suggestion not found.');
   if (s.status !== 'approved') throw new ApiError(409, 'FORBIDDEN', 'Approve this suggestion before applying it.');
-  if (s.kind !== 'description') throw new ApiError(400, 'VALIDATION', 'Only description updates can be applied automatically in this release.');
+  if (!['description', 'categories', 'services'].includes(s.kind)) throw new ApiError(400, 'VALIDATION', 'This kind of suggestion cannot be applied automatically.');
   const loc = await ownLocation(uid, s.location_id);
-  await G.patchLocation(uid, loc.google_location_id, 'profile', { profile: { description: String(s.payload.text).slice(0, 750) } });
+  const added: string[] = []; const skipped: string[] = [];
+
+  if (s.kind === 'description') {
+    await G.patchLocation(uid, loc.google_location_id, 'profile', { profile: { description: String(s.payload.text).slice(0, 750) } });
+  } else {
+    const items: string[] = [...new Set<string>((s.payload.items ?? []).map((x: any) => String(x).trim()).filter(Boolean))];
+    if (!items.length) throw new ApiError(400, 'VALIDATION', 'Nothing to apply.');
+    const cur: any = await G.getLocation(uid, loc.google_location_id);
+    if (s.kind === 'categories') {
+      const primary = cur.categories?.primaryCategory;
+      if (!primary?.name) throw new ApiError(409, 'VALIDATION', 'Your Google profile has no primary category yet. Set one in Google first.');
+      const have = new Set<string>([primary.name, ...(cur.categories?.additionalCategories ?? []).map((c: any) => c.name)]);
+      const keep: any[] = (cur.categories?.additionalCategories ?? []).map((c: any) => ({ name: c.name }));
+      const region = cur.storefrontAddress?.regionCode ?? 'IN';
+      for (const label of items) {
+        const found = (await G.searchCategories(uid, label, region).catch(() => ({ categories: [] }))).categories ?? [];
+        const hit = found.find((c) => c.displayName.toLowerCase() === label.toLowerCase());
+        if (!hit) { skipped.push(label); continue; }
+        if (have.has(hit.name)) { skipped.push(`${label} (already on your profile)`); continue; }
+        if (keep.length >= 9) { skipped.push(`${label} (Google allows 9 extra categories)`); continue; }
+        have.add(hit.name); keep.push({ name: hit.name }); added.push(hit.displayName);
+      }
+      if (!added.length) throw new ApiError(422 as any, 'VALIDATION', `No new categories could be added. ${skipped.join('; ')}`);
+      await G.patchLocation(uid, loc.google_location_id, 'categories', { categories: { primaryCategory: { name: primary.name }, additionalCategories: keep } });
+    } else {
+      const existing: any[] = cur.serviceItems ?? [];
+      const names = new Set(existing.map((x) => String(x.freeFormServiceItem?.label?.displayName ?? '').toLowerCase()).filter(Boolean));
+      const catName = cur.categories?.primaryCategory?.name;
+      if (!catName) throw new ApiError(409, 'VALIDATION', 'Your Google profile has no primary category yet. Set one in Google first.');
+      const fresh: any[] = [];
+      for (const label of items) {
+        if (names.has(label.toLowerCase())) { skipped.push(`${label} (already listed)`); continue; }
+        names.add(label.toLowerCase()); added.push(label);
+        fresh.push({ freeFormServiceItem: { category: catName, label: { displayName: label.slice(0, 140), languageCode: 'en' } } });
+      }
+      if (!fresh.length) throw new ApiError(422 as any, 'VALIDATION', 'All of these services are already on your profile.');
+      await G.patchLocation(uid, loc.google_location_id, 'serviceItems', { serviceItems: [...existing, ...fresh] });
+    }
+  }
   await db().from('ai_suggestions').update({ status: 'applied', decided_at: new Date().toISOString() }).eq('id', s.id);
-  await auditLog(uid, 'gbp.apply_description', 'business_locations', loc.id);
-  await notify(uid, 'optimization', 'Description updated', `Your description for ${loc.title} was updated on Google.`);
-  res.json({ ok: true });
+  await auditLog(uid, `gbp.apply_${s.kind}`, 'business_locations', loc.id);
+  await notify(uid, 'optimization', `${s.kind[0].toUpperCase()}${s.kind.slice(1)} updated`, `Your ${s.kind} for ${loc.title} were updated on Google.`);
+  res.json({ ok: true, added, skipped });
 }));
 
 // ---------- Photos (read-only, from Google media endpoint) ----------
