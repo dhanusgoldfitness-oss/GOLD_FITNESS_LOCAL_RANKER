@@ -165,6 +165,27 @@ business.post('/posts/generate', validate(z.object({ location_id: z.string().uui
     res.json({ text: text.trim().slice(0, 1500) });
   } catch (e) { await settle(false); throw e; }
 }));
+// Weekly plan: AI drafts one post per slot and schedules it. The 1-minute scheduler publishes each when due.
+business.post('/posts/plan', validate(z.object({
+  location_id: z.string().uuid(), post_type: z.enum(['standard', 'offer', 'event']).default('standard'),
+  slots: z.array(z.object({ scheduled_at: z.string().datetime(), topic: z.string().trim().min(3).max(300) }).strict()).min(1).max(8),
+}).strict()), wrap(async (req, res) => {
+  const uid = req.user!.id;
+  const loc = await ownLocation(uid, req.body.location_id);
+  const created: any[] = []; const errors: string[] = [];
+  for (const slot of req.body.slots as { scheduled_at: string; topic: string }[]) {
+    if (new Date(slot.scheduled_at).getTime() < Date.now() + 60_000) { errors.push('Skipped a date that is already in the past.'); continue; }
+    let settle: (ok: boolean) => Promise<void>;
+    try { settle = await spendCredit(uid, 'post_generate'); } catch (e) { errors.push(e instanceof Error ? e.message : 'Out of credits.'); break; }
+    try {
+      const text = await gemini(`Write a Google Business Profile ${req.body.post_type} post (max 900 chars, 1 emoji max, clear call to action) for "${loc.title}" in ${loc.city ?? 'the local area'}. Topic: ${slot.topic}. Do not invent prices, dates or offers not in the topic. Output only the post text.`);
+      await settle(true);
+      const { data } = await db().from('content_posts').insert({ user_id: uid, location_id: loc.id, post_type: req.body.post_type, body: text.trim().slice(0, 1500), status: 'scheduled', scheduled_at: slot.scheduled_at }).select().single();
+      if (data) created.push(data);
+    } catch (e) { await settle(false); errors.push(e instanceof Error ? e.message : 'Could not draft a post.'); break; }
+  }
+  res.status(created.length ? 201 : 200).json({ created: created.length, posts: created, errors });
+}));
 export async function publishPost(uid: string, p: any) {
   const loc = await ownLocation(uid, p.location_id);
   try {
