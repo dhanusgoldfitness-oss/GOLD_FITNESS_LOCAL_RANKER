@@ -22,6 +22,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     { to: '/photos', label: 'Photos & Videos', icon: <ImageIcon size={16} /> } ] },
   { group: 'Content & AI', items: [
     { to: '/ai-mode', label: 'AI Mode', icon: <Sparkles size={16} /> },
+    { to: '/ai-images', label: 'AI Images', icon: <ImageIcon size={16} /> },
     { to: '/social', label: 'Social Post', icon: <Share2 size={16} /> } ] },
   { group: 'Insights', items: [
     { to: '/rank-checker', label: 'Local Rank Checker', icon: <Map size={16} /> },
