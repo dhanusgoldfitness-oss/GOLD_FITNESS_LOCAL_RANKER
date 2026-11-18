@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, ChevronDown, CreditCard, FileText, Gauge, Gem, Image as ImageIcon, LayoutDashboard, LogOut, Map, Menu, MessageSquare,
-  Moon, Package, Receipt, Search, Settings, Share2, Sparkles, Star, Sun, Tags, Target, Trophy, TrendingUp, Users, Wallet, Wand2, X, FileBarChart, Building2, Send, Key,
+  Moon, Package, Receipt, Search, Settings, Share2, Sparkles, Star, Sun, Tags, Target, Trophy, TrendingUp, Users, Video, Wallet, Wand2, X, FileBarChart, Building2, Send, Key,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { api, STATUS_LABEL } from '../lib/api';
@@ -23,6 +23,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
   { group: 'Content & AI', items: [
     { to: '/ai-mode', label: 'AI Mode', icon: <Sparkles size={16} /> },
     { to: '/ai-images', label: 'AI Images', icon: <ImageIcon size={16} /> },
+    { to: '/ai-video', label: 'AI Video', icon: <Video size={16} /> },
     { to: '/social', label: 'Social Post', icon: <Share2 size={16} /> } ] },
   { group: 'Insights', items: [
     { to: '/rank-checker', label: 'Local Rank Checker', icon: <Map size={16} /> },
