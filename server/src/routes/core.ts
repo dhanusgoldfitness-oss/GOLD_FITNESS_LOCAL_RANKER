@@ -160,7 +160,7 @@ core.get('/plan', auth, wrap(async (req, res) => {
   }
   const { data: p } = await db().from('profiles').select('ai_credits').eq('id', uid).single();
   const { data: usage } = await db().from('ai_usage').select('credits').eq('user_id', uid);
-  const { data: plans } = await db().from('plans').select('*').order('price_inr');
+  const { data: plans } = await db().from('plans').select('*').neq('id', 'owner').order('price_inr');   // the owner plan is never offered
   res.json({
     current: subs![0], history: subs, plans,
     credits: { left: p?.ai_credits ?? 0, used: (usage ?? []).reduce((a, u) => a + u.credits, 0) },
