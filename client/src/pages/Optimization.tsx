@@ -10,6 +10,7 @@ export default function Optimization() {
   const sg = useApi<{ suggestions: Sug[] }>(L.selected ? `/locations/${L.selected}/ai/suggestions` : null, [L.selected]);
   const { busy, run } = useAction();
   const [edit, setEdit] = useState<Record<string, string>>({});
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   if (L.loading) return <PageLoading />;
   if (!L.enabled.length) return <><PageHeader title="One-Click Optimization" /><NoLocations /></>;
@@ -21,7 +22,7 @@ export default function Optimization() {
     await run('d' + s.id, () => api(`/ai/suggestions/${s.id}`, { method: 'PATCH', body }), status === 'approved' ? 'Approved' : 'Rejected'); sg.reload();
   };
   const apply = async (s: Sug) => {
-    if (!confirm('This will update your live Google Business Profile description. Continue?')) return;
+    setConfirming(null);
     await run('a' + s.id, () => api(`/ai/suggestions/${s.id}/apply`, { method: 'POST', body: {} }), 'Applied to Google'); sg.reload();
   };
   const text = (s: Sug) => (s.kind === 'description' ? s.payload.text : (s.payload.items ?? []).join('\n'));
@@ -42,7 +43,9 @@ export default function Optimization() {
               {s.kind === 'description' && <div className="mt-1 text-xs text-slate-500">{(edit[s.id] ?? text(s)).length}/750 characters</div>}
               {s.status === 'draft' && <div className="mt-3 flex gap-2"><button className="btn-primary" onClick={() => decide(s, 'approved')} disabled={busy === 'd' + s.id}><Check size={16} />Approve</button><button className="btn-ghost" onClick={() => decide(s, 'rejected')}><X size={16} />Reject</button></div>}
               {s.status === 'approved' && (s.kind === 'description'
-                ? <div className="mt-3"><button className="btn-primary" onClick={() => apply(s)} disabled={busy === 'a' + s.id}>Apply to Google</button></div>
+                ? <div className="mt-3">{confirming === s.id
+                    ? <div className="flex flex-wrap items-center gap-2"><span className="text-sm">This updates your <b>live</b> Google Business Profile description.</span><button className="btn-primary" onClick={() => apply(s)} disabled={busy === 'a' + s.id}>{busy === 'a' + s.id ? 'Applying…' : 'Yes, update Google'}</button><button className="btn-ghost" onClick={() => setConfirming(null)}>Cancel</button></div>
+                    : <button className="btn-primary" onClick={() => setConfirming(s.id)} disabled={busy === 'a' + s.id}>Apply to Google</button>}</div>
                 : <p className="mt-3 text-sm text-slate-500">Approved. Categories and services are applied manually in Google for now — copy the list above.</p>)}
             </div>
           ))}
