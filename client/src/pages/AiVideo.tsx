@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Trash2, Video } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { useAuth } from '../lib/auth';
 import { Badge, EmptyState, ErrorBox, PageHeader, PageLoading, Spinner, useAction, useApi, useLocations } from '../components/ui';
 
@@ -28,7 +29,7 @@ export default function AiVideo() {
 
   const gen = async () => { const r = await run('gen', () => api('/ai-videos', { method: 'POST', body: { prompt, ...(L.selected && { location_id: L.selected }) } }), 'Video started — this takes a few minutes'); if (r) { setPrompt(''); d.reload(); } };
   const approve = async (v: V) => { await run('a' + v.id, () => api(`/ai-videos/${v.id}`, { method: 'PATCH', body: { approved: !v.approved } })); d.reload(); };
-  const del = async (v: V) => { if (!confirm('Delete this video?')) return; await run('x' + v.id, () => api(`/ai-videos/${v.id}`, { method: 'DELETE' })); d.reload(); };
+  const del = async (v: V) => { if (!(await askConfirm('Delete this video?'))) return; await run('x' + v.id, () => api(`/ai-videos/${v.id}`, { method: 'DELETE' })); d.reload(); };
 
   return (
     <>

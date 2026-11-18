@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Download, Plus, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { Badge, EmptyState, ErrorBox, fmtDate, inr, Modal, PageHeader, PageLoading, StatCard, Toggle, useAction, useApi } from '../components/ui';
 
 interface Item { name: string; qty: number; price: number }
@@ -24,7 +25,7 @@ export function Invoices() {
     if (r) { setOpen(false); setF({ customer_id: '', due_date: '', status: 'draft', items: [{ name: '', qty: 1, price: 0 }] }); inv.reload(); }
   };
   const mark = async (i: Inv, status: string) => { await run('m' + i.id, () => api(`/invoices/${i.id}`, { method: 'PATCH', body: status === 'paid' ? { status, paid: i.total } : { status } }), 'Updated'); inv.reload(); };
-  const del = async (i: Inv) => { if (!confirm('Delete this draft?')) return; await run('d' + i.id, () => api(`/invoices/${i.id}`, { method: 'DELETE' })); inv.reload(); };
+  const del = async (i: Inv) => { if (!(await askConfirm('Delete this draft?'))) return; await run('d' + i.id, () => api(`/invoices/${i.id}`, { method: 'DELETE' })); inv.reload(); };
 
   if (inv.loading) return <PageLoading />;
   if (inv.error) return <ErrorBox error={inv.error} onRetry={inv.reload} />;

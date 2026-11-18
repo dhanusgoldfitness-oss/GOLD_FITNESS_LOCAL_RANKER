@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Check, ImageIcon, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { useAuth } from '../lib/auth';
 import { Badge, EmptyState, ErrorBox, PageHeader, PageLoading, useAction, useApi, useLocations } from '../components/ui';
 
@@ -13,7 +14,7 @@ export default function AiImages() {
   const [prompt, setPrompt] = useState('');
   const gen = async () => { const r = await run('gen', () => api('/ai-images', { method: 'POST', body: { prompt, ...(L.selected && { location_id: L.selected }) } }), 'Image saved'); if (r) { setPrompt(''); d.reload(); refreshProfile(); } };
   const approve = async (m: Media) => { await run('a' + m.id, () => api(`/ai-images/${m.id}`, { method: 'PATCH', body: { status: m.status === 'approved' ? 'draft' : 'approved' } })); d.reload(); };
-  const del = async (m: Media) => { if (!confirm('Delete this image?')) return; await run('x' + m.id, () => api(`/ai-images/${m.id}`, { method: 'DELETE' })); d.reload(); };
+  const del = async (m: Media) => { if (!(await askConfirm('Delete this image?'))) return; await run('x' + m.id, () => api(`/ai-images/${m.id}`, { method: 'DELETE' })); d.reload(); };
   return (
     <>
       <PageHeader title="AI Image Generator" subtitle="Describe the visual — keep it short. 1 credit per image; a failed generation costs nothing." actions={<Badge>{profile?.ai_credits ?? 0} credits left</Badge>} />

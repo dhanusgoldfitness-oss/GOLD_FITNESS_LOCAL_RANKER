@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/api';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { useAuth } from '../lib/auth';
 import { Badge, ErrorBox, fmtDate, PageHeader, PageLoading, Tabs, Toggle, useAction, useApi } from '../components/ui';
 
@@ -104,7 +105,7 @@ export default function SettingsPage() {
             <label className="label" htmlFor="delc">Type your email <b>{profile.email}</b> to confirm</label>
             <input id="delc" className="input mb-3" value={confirmDel} onChange={(e) => setConfirmDel(e.target.value)} autoComplete="off" />
             <button className="btn-danger" disabled={busy === 'del' || confirmDel.trim().toLowerCase() !== (profile.email ?? '').toLowerCase()} onClick={async () => {
-              if (!confirm('Delete your account and all data permanently?')) return;
+              if (!(await askConfirm('Delete your account and all data permanently?'))) return;
               const r = await run('del', () => api('/me/delete', { method: 'POST', body: { confirm: confirmDel.trim() } }), 'Account deleted');
               if (r) await signOut();
             }}>{busy === 'del' ? 'Deleting…' : 'Delete account permanently'}</button></div>

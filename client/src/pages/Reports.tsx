@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileText, Printer, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { EmptyState, ErrorBox, fmtDate, LocationPicker, Modal, NoLocations, PageHeader, PageLoading, useAction, useApi, useLocations } from '../components/ui';
 
 const v = (x: unknown) => (x == null ? 'N/A' : String(x));
@@ -15,7 +16,7 @@ export default function Reports() {
   if (!L.enabled.length) return <><PageHeader title="Reports" /><NoLocations /></>;
   const gen = async () => { const r = await run('gen', () => api<{ report: any }>('/reports', { method: 'POST', body: { location_id: L.selected, days } }), 'Report generated'); if (r) { d.reload(); setView(r.report); } };
   const open = async (id: string) => { const r = await run('o' + id, () => api<{ report: any }>(`/reports/${id}`)); if (r) setView(r.report); };
-  const del = async (id: string) => { if (!confirm('Delete this report?')) return; await run('x' + id, () => api(`/reports/${id}`, { method: 'DELETE' })); d.reload(); };
+  const del = async (id: string) => { if (!(await askConfirm('Delete this report?'))) return; await run('x' + id, () => api(`/reports/${id}`, { method: 'DELETE' })); d.reload(); };
   const s = view?.snapshot;
   return (
     <>

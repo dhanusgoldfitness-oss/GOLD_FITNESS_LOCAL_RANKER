@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MessageCircle, Plus, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { Badge, EmptyState, ErrorBox, fmtDate, Modal, PageHeader, PageLoading, StatCard, Tabs, useAction, useApi } from '../components/ui';
 
 const ST = ['new', 'contacted', 'interested', 'trial_booked', 'visited', 'joined', 'lost'] as const;
@@ -23,7 +24,7 @@ export default function Leads() {
     if (await run('add', () => api('/leads', { method: 'POST', body }), 'Lead added')) { setAdd(false); setF({ ...f, name: '', phone: '', interest: '', assigned_to: '', next_follow_up: '' }); d.reload(); }
   };
   const move = async (l: Lead, status: string) => { await run('m' + l.id, () => api(`/leads/${l.id}`, { method: 'PATCH', body: { status } })); d.reload(); if (open === l.id) det.reload(); };
-  const del = async (l: Lead) => { if (!confirm(`Delete ${l.name}?`)) return; await run('x' + l.id, () => api(`/leads/${l.id}`, { method: 'DELETE' })); setOpen(null); d.reload(); };
+  const del = async (l: Lead) => { if (!(await askConfirm(`Delete ${l.name}?`))) return; await run('x' + l.id, () => api(`/leads/${l.id}`, { method: 'DELETE' })); setOpen(null); d.reload(); };
   const addNote = async () => { if (await run('note', () => api(`/leads/${open}/notes`, { method: 'POST', body: { body: note } }))) { setNote(''); det.reload(); } };
   const sendWa = async () => { if (await run('wa', () => api(`/leads/${open}/whatsapp`, { method: 'POST', body: { message: msg } }), 'WhatsApp sent')) { setMsg(''); det.reload(); } };
   const today = new Date().toISOString().slice(0, 10);

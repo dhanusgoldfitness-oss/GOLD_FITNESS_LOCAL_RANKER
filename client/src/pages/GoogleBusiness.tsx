@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { CheckCircle2, RefreshCw, Unplug } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { Badge, EmptyState, ErrorBox, fmtDate, Loc, PageHeader, PageLoading, StatCard, Toggle, useAction, useApi, useToast } from '../components/ui';
 
 const MSG: Record<string, [string, string]> = {
@@ -31,7 +32,7 @@ export default function GoogleBusiness() {
   const connected = status === 'CONNECTED' || status === 'API_PENDING';
 
   const connect = () => run('connect', async () => { const { url } = await api<{ url: string }>('/auth/google/url'); window.location.href = url; });
-  const disconnect = async () => { if (!confirm('Disconnect Google? Synced data stays; syncing stops until you reconnect.')) return; await run('disc', () => api('/google/disconnect', { method: 'POST', body: {} }), 'Google disconnected'); st.reload(); };
+  const disconnect = async () => { if (!(await askConfirm('Disconnect Google? Synced data stays; syncing stops until you reconnect.'))) return; await run('disc', () => api('/google/disconnect', { method: 'POST', body: {} }), 'Google disconnected'); st.reload(); };
   const sync = () => run('sync', async () => { const r = await api<{ synced: number }>('/locations/sync', { method: 'POST', body: {} }); await locs.reload(); st.reload(); toast('ok', `Synced ${r.synced} location(s).`); });
   const toggle = async (l: Loc, enabled: boolean) => { await run('t' + l.id, () => api(`/locations/${l.id}`, { method: 'PATCH', body: { enabled } })); locs.reload(); };
 

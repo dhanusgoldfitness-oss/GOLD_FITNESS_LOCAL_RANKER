@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { Badge, EmptyState, ErrorBox, fmtDate, LocationPicker, Modal, NoLocations, PageHeader, PageLoading, useAction, useApi, useLocations } from '../components/ui';
 
 interface Snap { rating: number | null; review_count: number | null; primary_type: string | null; captured_at: string }
@@ -20,7 +21,7 @@ export default function Competitors() {
   const discover = async () => { const r = await run('disc', () => api<{ candidates: Cand[] }>(`/locations/${L.selected}/competitors/discover`, { method: 'POST', body: q ? { query: q } : {} })); if (r) setCands(r.candidates); };
   const add = async (c: Cand) => { await run('add' + c.id, () => api(`/locations/${L.selected}/competitors`, { method: 'POST', body: { place_id: c.id, name: c.name, address: c.address } }), 'Competitor added'); setCands((x) => x?.filter((y) => y.id !== c.id) ?? null); d.reload(); };
   const refresh = async () => { const r = await run('ref', () => api<{ total: number; ok: number }>(`/locations/${L.selected}/competitors/refresh`, { method: 'POST', body: {} })); if (r) { d.reload(); } };
-  const del = async (c: Comp) => { if (!confirm(`Remove ${c.name}?`)) return; await run('x' + c.id, () => api(`/competitors/${c.id}`, { method: 'DELETE' })); d.reload(); };
+  const del = async (c: Comp) => { if (!(await askConfirm(`Remove ${c.name}?`))) return; await run('x' + c.id, () => api(`/competitors/${c.id}`, { method: 'DELETE' })); d.reload(); };
   const analyze = async () => { const r = await run('gap', () => api<any>(`/locations/${L.selected}/competitors/gap-analysis`, { method: 'POST', body: {} })); if (r) setGap(r); };
   const list = d.data?.competitors ?? [];
 

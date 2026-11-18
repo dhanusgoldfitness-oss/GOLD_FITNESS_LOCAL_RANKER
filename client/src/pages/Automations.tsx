@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { Badge, EmptyState, ErrorBox, fmtDate, Modal, PageHeader, PageLoading, Toggle, useAction, useApi } from '../components/ui';
 
 const TRIG: Record<string, string> = { negative_review: 'A negative review arrives', new_lead: 'A new lead is created', rank_drop: 'A keyword rank drops', failed_post: 'A post fails to publish' };
@@ -21,7 +22,7 @@ export default function Automations() {
   };
   const addStarter = async () => { const r = await run('starter', () => api<{ added: number }>('/automations/starter', { method: 'POST', body: {} })); if (r) d.reload(); };
   const toggle = async (r: Rule, enabled: boolean) => { await run('t' + r.id, () => api(`/automations/${r.id}`, { method: 'PATCH', body: { enabled } })); d.reload(); };
-  const del = async (r: Rule) => { if (!confirm(`Delete "${r.name}"?`)) return; await run('x' + r.id, () => api(`/automations/${r.id}`, { method: 'DELETE' })); d.reload(); };
+  const del = async (r: Rule) => { if (!(await askConfirm(`Delete "${r.name}"?`))) return; await run('x' + r.id, () => api(`/automations/${r.id}`, { method: 'DELETE' })); d.reload(); };
   if (d.loading) return <PageLoading />;
   if (d.error) return <ErrorBox error={d.error} onRetry={d.reload} />;
   return (

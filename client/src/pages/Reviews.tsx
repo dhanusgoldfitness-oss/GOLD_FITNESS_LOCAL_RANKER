@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { RefreshCw, Sparkles, Star, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { Badge, EmptyState, ErrorBox, fmtDate, Loc, NoLocations, PageHeader, PageLoading, StatCard, useAction, useApi, useLocations } from '../components/ui';
 
 interface Review { id: string; location_id: string; reviewer_name: string | null; rating: number; comment: string | null; sentiment: 'positive' | 'neutral' | 'negative'; reply_text: string | null; reply_status: 'none' | 'draft' | 'published'; review_time: string | null; business_locations?: { title: string } }
@@ -26,8 +27,8 @@ export default function Reviews() {
   const sync = async () => { await run('sync', async () => { const r = await api<{ fetched: number; googleTotal: number | null }>(`/locations/${L.selected}/reviews/sync`, { method: 'POST', body: {} }); setGTotal(r.googleTotal); return r; }, 'Reviews synced'); rv.reload(); };
   const ai = async (r: Review) => { const x = await run('ai' + r.id, () => api<{ draft: string; requiresManualReview: boolean }>(`/reviews/${r.id}/ai-reply`, { method: 'POST', body: {} })); if (x) { setDrafts({ ...drafts, [r.id]: x.draft }); setEditing(r.id); rv.reload(); } };
   const save = async (r: Review) => { await run('s' + r.id, () => api(`/reviews/${r.id}/draft`, { method: 'PUT', body: { text: drafts[r.id] } }), 'Draft saved'); rv.reload(); };
-  const publish = async (r: Review) => { if (!confirm('Publish this reply publicly on Google?')) return; await run('p' + r.id, () => api(`/reviews/${r.id}/publish`, { method: 'POST', body: { text: drafts[r.id] ?? r.reply_text } }), 'Reply published'); setEditing(null); rv.reload(); };
-  const del = async (r: Review) => { if (!confirm('Delete this reply?')) return; await run('x' + r.id, () => api(`/reviews/${r.id}/reply`, { method: 'DELETE' }), 'Reply deleted'); rv.reload(); };
+  const publish = async (r: Review) => { if (!(await askConfirm('Publish this reply publicly on Google?'))) return; await run('p' + r.id, () => api(`/reviews/${r.id}/publish`, { method: 'POST', body: { text: drafts[r.id] ?? r.reply_text } }), 'Reply published'); setEditing(null); rv.reload(); };
+  const del = async (r: Review) => { if (!(await askConfirm('Delete this reply?'))) return; await run('x' + r.id, () => api(`/reviews/${r.id}/reply`, { method: 'DELETE' }), 'Reply deleted'); rv.reload(); };
 
   const s = rv.data?.stats;
   const pages = Math.max(1, Math.ceil((rv.data?.total ?? 0) / 50));

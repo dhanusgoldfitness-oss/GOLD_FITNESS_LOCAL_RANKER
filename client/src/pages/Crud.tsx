@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { Badge, EmptyState, ErrorBox, inr, Modal, PageHeader, PageLoading, useAction, useApi } from '../components/ui';
 
 interface Field { key: string; label: string; type?: 'text' | 'number' | 'date' | 'email' | 'select'; options?: string[]; required?: boolean }
@@ -23,7 +24,7 @@ function CrudPage({ title, subtitle, path, singular, fields, cols, initial }: { 
     const r = await run('save', () => api(editId ? `/${path}/${editId}` : `/${path}`, { method: editId ? 'PATCH' : 'POST', body }), `${singular} saved`);
     if (r) { setOpen(false); d.reload(); }
   };
-  const del = async (id: string) => { if (!confirm(`Delete this ${singular.toLowerCase()}?`)) return; await run('del' + id, () => api(`/${path}/${id}`, { method: 'DELETE' }), 'Deleted'); d.reload(); };
+  const del = async (id: string) => { if (!(await askConfirm(`Delete this ${singular.toLowerCase()}?`))) return; await run('del' + id, () => api(`/${path}/${id}`, { method: 'DELETE' }), 'Deleted'); d.reload(); };
 
   const rows = (d.data?.items ?? []).filter((r) => !q || JSON.stringify(r).toLowerCase().includes(q.toLowerCase()));
   return (

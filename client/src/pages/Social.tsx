@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Check, Copy, ExternalLink, Sparkles, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { useAuth } from '../lib/auth';
 import { Badge, EmptyState, ErrorBox, LocationPicker, NoLocations, PageHeader, PageLoading, useAction, useApi, useLocations, useToast } from '../components/ui';
 
@@ -27,7 +28,7 @@ export default function Social() {
   const copy = async (p: P) => { await navigator.clipboard.writeText(text(p)); toast('ok', 'Copied'); };
   const save = async (p: P) => { await run('s' + p.id, () => api(`/social/${p.id}`, { method: 'PATCH', body: { caption: edit[p.id] } }), 'Saved'); setEdit(({ [p.id]: _, ...r }) => r); d.reload(); };
   const posted = async (p: P) => { await run('p' + p.id, () => api(`/social/${p.id}`, { method: 'PATCH', body: { status: p.status === 'posted' ? 'draft' : 'posted' } })); d.reload(); };
-  const del = async (p: P) => { if (!confirm('Delete this draft?')) return; await run('x' + p.id, () => api(`/social/${p.id}`, { method: 'DELETE' })); d.reload(); };
+  const del = async (p: P) => { if (!(await askConfirm('Delete this draft?'))) return; await run('x' + p.id, () => api(`/social/${p.id}`, { method: 'DELETE' })); d.reload(); };
 
   return (
     <>

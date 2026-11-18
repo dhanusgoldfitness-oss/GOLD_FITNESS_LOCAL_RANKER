@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowDown, ArrowUp, Minus, Play, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { Badge, EmptyState, ErrorBox, fmtDate, LocationPicker, Modal, NoLocations, PageHeader, PageLoading, Toggle, useAction, useApi, useLocations } from '../components/ui';
 
 interface Hist { rank: number | null; status: string; checked_at: string }
@@ -21,7 +22,7 @@ export default function Keywords() {
   const suggest = async () => { const r = await run('sug', () => api<{ keywords: string[] }>(`/locations/${L.selected}/keywords/suggest`, { method: 'POST', body: {} })); if (r) setSugg(r.keywords); };
   const check = async () => { await run('check', () => api(`/locations/${L.selected}/keywords/check`, { method: 'POST', body: {} }), 'Rank check complete'); d.reload(); };
   const toggle = async (k: KW, active: boolean) => { await run('t' + k.id, () => api(`/keywords/${k.id}`, { method: 'PATCH', body: { active } })); d.reload(); };
-  const del = async (k: KW) => { if (!confirm(`Delete "${k.keyword}" and its rank history?`)) return; await run('x' + k.id, () => api(`/keywords/${k.id}`, { method: 'DELETE' })); d.reload(); };
+  const del = async (k: KW) => { if (!(await askConfirm(`Delete "${k.keyword}" and its rank history?`))) return; await run('x' + k.id, () => api(`/keywords/${k.id}`, { method: 'DELETE' })); d.reload(); };
   const list = d.data?.keywords ?? [];
 
   return (

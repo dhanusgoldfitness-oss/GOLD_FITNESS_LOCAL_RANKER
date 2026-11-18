@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CalendarClock, Plus, Send, Sparkles, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { askConfirm } from '../lib/confirm';
 import { Badge, EmptyState, ErrorBox, fmtDate, LocationPicker, Modal, NoLocations, PageHeader, PageLoading, useAction, useApi, useLocations } from '../components/ui';
 
 interface Post { id: string; location_id: string | null; post_type: 'standard' | 'offer' | 'event'; title: string | null; body: string; image_url: string | null; status: 'draft' | 'scheduled' | 'published' | 'failed'; scheduled_at: string | null; publish_error: string | null; created_at: string }
@@ -38,8 +39,8 @@ export default function Posts() {
     const r = await run('save', () => api('/posts', { method: 'POST', body }), form.scheduled_at ? 'Post scheduled' : 'Draft saved');
     if (r) { setOpen(false); setForm({ ...form, title: '', body: '', image_url: '', scheduled_at: '', topic: '' }); ps.reload(); }
   };
-  const publish = async (p: Post) => { if (!confirm('Publish this post to Google now?')) return; await run('p' + p.id, () => api(`/posts/${p.id}/publish`, { method: 'POST', body: {} }), 'Published to Google'); ps.reload(); };
-  const del = async (p: Post) => { if (!confirm('Delete this post?')) return; await run('x' + p.id, () => api(`/posts/${p.id}`, { method: 'DELETE' })); ps.reload(); };
+  const publish = async (p: Post) => { if (!(await askConfirm('Publish this post to Google now?'))) return; await run('p' + p.id, () => api(`/posts/${p.id}/publish`, { method: 'POST', body: {} }), 'Published to Google'); ps.reload(); };
+  const del = async (p: Post) => { if (!(await askConfirm('Delete this post?'))) return; await run('x' + p.id, () => api(`/posts/${p.id}`, { method: 'DELETE' })); ps.reload(); };
 
   return (
     <>
