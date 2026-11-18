@@ -25,7 +25,6 @@ import Automations from './pages/Automations';
 import WhatsApp from './pages/WhatsApp';
 import Admin from './pages/Admin';
 import AiMode from './pages/AiMode';
-import AiVideo from './pages/AiVideo';
 import Social from './pages/Social';
 import { DataDeletion, Privacy, Terms } from './pages/Legal';
 import { Categories, Customers, Expenses, Services } from './pages/Crud';
@@ -66,7 +65,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/performance" element={<Performance />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/ai-mode" element={<AiMode />} />
-              <Route path="/ai-video" element={<AiVideo />} />
+              <Route path="/ai-video" element={<Navigate to="/dashboard" replace />} />
               <Route path="/social" element={<Social />} />
               <Route path="/ai-images" element={<Navigate to="/dashboard" replace />} />
               <Route path="/leads" element={<Leads />} />
