@@ -129,15 +129,18 @@ async function ideogramImage(prompt: string): Promise<{ data: string; mime: stri
 async function pollinationsImage(prompt: string): Promise<{ data: string; mime: string }> {
   const url = `${config.POLLINATIONS_BASE_URL.replace(/\/+$/, '')}/${encodeURIComponent(prompt.slice(0, 1500))}`
     + `?width=1024&height=1024&nologo=true&private=true&model=${encodeURIComponent(config.POLLINATIONS_MODEL)}&seed=${Math.floor(Math.random() * 1e9)}`;
+  const call = () => fetch(url, { headers: config.POLLINATIONS_API_KEY ? { authorization: `Bearer ${config.POLLINATIONS_API_KEY}` } : {}, signal: AbortSignal.timeout(90_000) });
   let r: Response;
   try {
-    r = await fetch(url, { headers: config.POLLINATIONS_API_KEY ? { authorization: `Bearer ${config.POLLINATIONS_API_KEY}` } : {}, signal: AbortSignal.timeout(90_000) });
+    r = await call();
+    // free tier: 1 image / 45 s per IP (reported as 402 or 429). Retry once shortly, then ask the user to wait.
+    if (r.status === 402 || r.status === 429) { await new Promise((ok) => setTimeout(ok, 4000)); r = await call(); }
   } catch { throw new ApiError(503, 'OFFLINE', 'Could not reach Pollinations.'); }
   if (!r.ok) {
     const why = await reason(r);
     console.error('[pollinations]', r.status, why);
     if (r.status === 401 || r.status === 403) throw new ApiError(502, 'UPSTREAM', 'Pollinations rejected the request (check POLLINATIONS_API_KEY if you set one).');
-    if (r.status === 429) throw new ApiError(429, 'RATE_LIMITED', 'Pollinations rate limit reached. Try again in a minute.');
+    if (r.status === 402 || r.status === 429) throw new ApiError(429, 'RATE_LIMITED', 'Free image limit reached (1 image every 45 seconds). Wait about a minute and try again, or add a Pollinations key (POLLINATIONS_API_KEY) for unlimited images.');
     throw new ApiError(502, 'API_PENDING' as any, `Pollinations image generation failed (${r.status}). ${why}`.trim());
   }
   const mime = (r.headers.get('content-type') ?? 'image/jpeg').split(';')[0];
