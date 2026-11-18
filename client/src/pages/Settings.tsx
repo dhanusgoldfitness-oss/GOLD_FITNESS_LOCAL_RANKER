@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const diag = useApi<{ checkedAt: string; checks: Record<string, { status: string; detail?: string }> }>(tab === 'diagnostics' ? '/diagnostics' : null, [tab]);
   const conn = useApi<{ connection: { status: string; google_email?: string } }>(tab === 'connections' ? '/google/status' : null, [tab]);
   const wa = useApi<{ status: string }>('/whatsapp/status');
+  const mods = useApi<{ instagram?: { status: string }; facebook?: { status: string } }>(tab === 'connections' ? '/modules/status' : null, [tab]);
 
   if (!profile) return <PageLoading />;
   const patch = async (b: Record<string, unknown>, msg = 'Saved') => { await run('p', () => api('/me', { method: 'PATCH', body: b }), msg); refreshProfile(); };
@@ -60,7 +61,7 @@ export default function SettingsPage() {
         <div className="card max-w-xl">{conn.loading ? <PageLoading /> : conn.error ? <ErrorBox error={conn.error} onRetry={conn.reload} /> : (
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-xl border border-slate-200/10 p-4"><div><div className="font-semibold">Google Business Profile</div><div className="text-xs text-slate-500">{conn.data?.connection.google_email ?? 'Not linked'}</div></div><div className="flex items-center gap-2"><Badge kind={conn.data?.connection.status} /><a className="btn-ghost" href="/google-business">Manage</a></div></div>
-            <div className="flex items-center justify-between rounded-xl border border-slate-200/10 p-4"><div><div className="font-semibold">Instagram</div><div className="text-xs text-slate-500">Not built yet — Social Post drafts captions you copy or open manually.</div></div><Badge kind="API_PENDING" /></div>
+            <div className="flex items-center justify-between rounded-xl border border-slate-200/10 p-4"><div><div className="font-semibold">Instagram &amp; Facebook</div><div className="text-xs text-slate-500">{mods.data?.instagram?.status === 'CONNECTED' || mods.data?.facebook?.status === 'CONNECTED' ? 'Publish from Social Post. Set on the server.' : 'Set META_ACCESS_TOKEN, INSTAGRAM_USER_ID and FACEBOOK_PAGE_ID on the server to publish directly.'}</div></div><Badge kind={mods.data?.instagram?.status === 'CONNECTED' || mods.data?.facebook?.status === 'CONNECTED' ? 'CONNECTED' : 'NOT_CONNECTED'} /></div>
             <div className="flex items-center justify-between rounded-xl border border-slate-200/10 p-4"><div><div className="font-semibold">WhatsApp Cloud API</div><div className="text-xs text-slate-500">Set on the server; see the WhatsApp page for details.</div></div><Badge kind={wa.data?.status ?? 'NOT_CONNECTED'} /></div>
           </div>)}</div>
       )}

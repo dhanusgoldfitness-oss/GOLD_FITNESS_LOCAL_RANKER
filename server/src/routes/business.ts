@@ -217,6 +217,8 @@ business.get('/modules/status', wrap(async (_req, res) => {
     ai_video: st(configured.gemini, 'Set GEMINI_API_KEY (plan with Veo access) on the server.'),
     maps: st(configured.maps, 'Set GOOGLE_MAPS_API_KEY (Places API New) on the server to enable rank checks and competitors.'),
     whatsapp: st(configured.whatsapp, 'Set WHATSAPP_TOKEN and WHATSAPP_PHONE_ID on the server.'),
+    instagram: st(configured.instagram, 'Set META_ACCESS_TOKEN and INSTAGRAM_USER_ID on the server.'),
+    facebook: st(configured.facebook, 'Set META_ACCESS_TOKEN and FACEBOOK_PAGE_ID on the server.'),
     gemini: st(configured.gemini, 'Set GEMINI_API_KEY on the server.'),
   });
 }));

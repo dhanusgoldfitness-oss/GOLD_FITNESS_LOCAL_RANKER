@@ -7,6 +7,7 @@ import { config, configured } from '../config.js';
 import { geminiJson } from '../lib/gemini.js';
 import { ownLocation, spendCredit } from './gbp.js';
 import { isUnlimited } from '../lib/unlimited.js';
+import { publishFacebook, publishInstagram } from '../lib/social.js';
 
 export const media = Router();
 media.use(auth);
@@ -113,6 +114,31 @@ media.post('/social/generate', validate(z.object({
 media.get('/social', wrap(async (req, res) => {
   const { data } = await db().from('social_posts').select('*').eq('user_id', req.user!.id).order('created_at', { ascending: false }).limit(100);
   res.json({ posts: data ?? [] });
+}));
+media.post('/social/:id/publish', validate(z.object({ image_url: z.string().url().max(500).optional() }).strict()), wrap(async (req, res) => {
+  const uid = req.user!.id;
+  const { data: p } = await db().from('social_posts').select('*').eq('id', req.params.id).eq('user_id', uid).maybeSingle();
+  if (!p) throw new ApiError(404, 'NOT_FOUND', 'Draft not found.');
+  if (p.status === 'posted') throw new ApiError(409, 'VALIDATION', 'Already marked as posted.');
+  if (p.platform !== 'instagram' && p.platform !== 'facebook') throw new ApiError(400, 'VALIDATION', 'Direct publishing is available for Instagram and Facebook only.');
+  const imageUrl = req.body.image_url ?? p.image_url ?? null;
+  const text = (p.caption + (p.hashtags?.length ? '\n\n' + p.hashtags.map((h: string) => '#' + h).join(' ') : '')).trim();
+  try {
+    let ref: string;
+    if (p.platform === 'instagram') {
+      if (!configured.instagram) throw new ApiError(503, 'NOT_CONNECTED', 'Instagram is not connected. Set META_ACCESS_TOKEN and INSTAGRAM_USER_ID on the server.');
+      if (!imageUrl) throw new ApiError(400, 'VALIDATION', 'Instagram posts need an image. Paste a public image link (JPEG or PNG).');
+      ref = await publishInstagram(text, imageUrl);
+    } else {
+      if (!configured.facebook) throw new ApiError(503, 'NOT_CONNECTED', 'Facebook is not connected. Set META_ACCESS_TOKEN and FACEBOOK_PAGE_ID on the server.');
+      ref = await publishFacebook(text, imageUrl);
+    }
+    await db().from('social_posts').update({ status: 'posted', external_ref: ref, image_url: imageUrl, publish_error: null }).eq('id', p.id);
+    res.json({ ok: true, external_ref: ref });
+  } catch (e) {
+    await db().from('social_posts').update({ publish_error: e instanceof Error ? e.message.slice(0, 300) : 'Failed', image_url: imageUrl }).eq('id', p.id);
+    throw e;
+  }
 }));
 media.patch('/social/:id', validate(z.object({ caption: z.string().trim().min(1).max(1000).optional(), status: z.enum(['draft', 'posted']).optional() }).strict()), wrap(async (req, res) => {
   await db().from('social_posts').update(req.body).eq('id', req.params.id).eq('user_id', req.user!.id);

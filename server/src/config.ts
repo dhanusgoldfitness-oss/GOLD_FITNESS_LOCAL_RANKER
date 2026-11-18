@@ -40,6 +40,10 @@ const schema = z.object({
   WHATSAPP_WABA_ID: z.string().optional(),
   WHATSAPP_VERIFY_TOKEN: z.string().optional(),
   WHATSAPP_APP_SECRET: z.string().optional(),
+  /** Meta Graph API publishing. META_ACCESS_TOKEN = long-lived Page / system-user token with instagram_content_publish + pages_manage_posts. */
+  META_ACCESS_TOKEN: z.string().optional(),
+  INSTAGRAM_USER_ID: z.string().optional(),
+  FACEBOOK_PAGE_ID: z.string().optional(),
   SCHEDULER_ENABLED: z.string().default('true'),
 });
 
@@ -62,4 +66,6 @@ export const configured = {
   image: !!(config.POLLINATIONS_ENABLED.toLowerCase() !== 'false' || config.IDEOGRAM_API_KEY || config.GEMINI_API_KEY || (config.OPENAI_API_KEY && /^https:\/\/api\.openai\.com\//.test(config.OPENAI_BASE_URL))),
   maps: !!config.GOOGLE_MAPS_API_KEY,
   whatsapp: !!(config.WHATSAPP_TOKEN && config.WHATSAPP_PHONE_ID),
+  instagram: !!(config.META_ACCESS_TOKEN && config.INSTAGRAM_USER_ID),
+  facebook: !!(config.META_ACCESS_TOKEN && config.FACEBOOK_PAGE_ID),
 };
