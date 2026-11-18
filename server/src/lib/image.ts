@@ -125,7 +125,27 @@ async function ideogramImage(prompt: string): Promise<{ data: string; mime: stri
   return { data: Buffer.from(await img.arrayBuffer()).toString('base64'), mime };
 }
 
-/** Image generation. AI_IMAGE_PROVIDER=auto tries Ideogram, then OpenAI, then Gemini (whichever keys are set), failing over on quota/outage. */
+/** Pollinations.ai: free, keyless. GET returns the image bytes directly (an optional key raises limits). */
+async function pollinationsImage(prompt: string): Promise<{ data: string; mime: string }> {
+  const url = `${config.POLLINATIONS_BASE_URL.replace(/\/+$/, '')}/${encodeURIComponent(prompt.slice(0, 1500))}`
+    + `?width=1024&height=1024&nologo=true&private=true&model=${encodeURIComponent(config.POLLINATIONS_MODEL)}&seed=${Math.floor(Math.random() * 1e9)}`;
+  let r: Response;
+  try {
+    r = await fetch(url, { headers: config.POLLINATIONS_API_KEY ? { authorization: `Bearer ${config.POLLINATIONS_API_KEY}` } : {}, signal: AbortSignal.timeout(90_000) });
+  } catch { throw new ApiError(503, 'OFFLINE', 'Could not reach Pollinations.'); }
+  if (!r.ok) {
+    const why = await reason(r);
+    console.error('[pollinations]', r.status, why);
+    if (r.status === 401 || r.status === 403) throw new ApiError(502, 'UPSTREAM', 'Pollinations rejected the request (check POLLINATIONS_API_KEY if you set one).');
+    if (r.status === 429) throw new ApiError(429, 'RATE_LIMITED', 'Pollinations rate limit reached. Try again in a minute.');
+    throw new ApiError(502, 'API_PENDING' as any, `Pollinations image generation failed (${r.status}). ${why}`.trim());
+  }
+  const mime = (r.headers.get('content-type') ?? 'image/jpeg').split(';')[0];
+  if (!mime.startsWith('image/')) throw new ApiError(502, 'UPSTREAM', 'Pollinations returned no image.');
+  return { data: Buffer.from(await r.arrayBuffer()).toString('base64'), mime };
+}
+
+/** Image generation. AI_IMAGE_PROVIDER=auto tries Ideogram, then OpenAI, then Gemini, then free Pollinations (whichever are set), failing over on quota/outage. */
 export async function generateImage(prompt: string): Promise<{ data: string; mime: string }> {
   const pv = config.AI_IMAGE_PROVIDER;
   const realOpenAI = configured.openai && /^https:\/\/api\.openai\.com\//.test(config.OPENAI_BASE_URL);
@@ -133,6 +153,7 @@ export async function generateImage(prompt: string): Promise<{ data: string; mim
     ['ideogram', configured.ideogram, () => ideogramImage(prompt)],
     ['openai', realOpenAI, () => openaiImage(prompt)],
     ['gemini', configured.gemini, () => geminiImage(prompt)],
+    ['pollinations', configured.pollinations, () => pollinationsImage(prompt)],
   ];
   if (pv !== 'auto') {
     const one = all.find((x) => x[0] === pv)!;
@@ -140,7 +161,7 @@ export async function generateImage(prompt: string): Promise<{ data: string; mim
     return one[2]();
   }
   const usable = all.filter((x) => x[1]);
-  if (!usable.length) throw new ApiError(503, 'NOT_CONNECTED', 'No image provider is configured. Set IDEOGRAM_API_KEY, OPENAI_API_KEY or GEMINI_API_KEY on the server.');
+  if (!usable.length) throw new ApiError(503, 'NOT_CONNECTED', 'No image provider is configured. Enable Pollinations (POLLINATIONS_ENABLED=true) or set IDEOGRAM_API_KEY, OPENAI_API_KEY or GEMINI_API_KEY on the server.');
   let last: unknown;
   for (const [name, , run] of usable) {
     try { return await run(); }
